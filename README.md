@@ -1,0 +1,2 @@
+# quakenet
+QuakeWorld Bot Client
