@@ -25,6 +25,7 @@ public:
   int readShort();
   char *readString();
   float readFloat();
+  float readCoord();
 
   void writeAngle16(float f);
   void writeChar(int c);

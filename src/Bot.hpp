@@ -43,8 +43,8 @@ private:
   PlayerInfo *me;
   PlayerInfo players[MAX_CLIENTS];
 
-  int blood;
-  int armor;
+  float blood;
+  float armor;
   int challenge;
   int frame;
   int targetSlot;

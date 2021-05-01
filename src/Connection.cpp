@@ -69,6 +69,19 @@ void Connection::send(Message msg) {
 }
 
 void Connection::sendInner(Message * msg) {
+
+   cout << "Sending[";
+   for(int i = 0; i < msg->data.size(); i++) {
+      int c = msg->data.data()[i];
+      if (c < 32 || c > 127) {
+	printf("[%i]", c);
+      } else { 
+	printf("%c", c);
+      }
+    }
+
+    cout << "] length[" << msg->data.size() << "]" <<endl;
+
     sendto(sockfd, (const char*) &msg->data[0], msg->data.size(), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof (servaddr));
 }
 
@@ -192,6 +205,10 @@ int Message::readShort() {
     msgReadCount += 2;
 
     return c;
+}
+
+float Message::readCoord() {
+  return readShort() * (1.0 / 8);
 }
 
 void Message::clear() {

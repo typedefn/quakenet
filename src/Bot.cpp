@@ -23,8 +23,6 @@ Bot::Bot() {
     generation = 0;
     genomeIndex = 0;
     srand(time(nullptr));
-    createStartPopulation();
-
 }
 
 Bot::Bot(const Bot& orig) {
@@ -39,19 +37,20 @@ void Bot::mainLoop() {
     getChallenge();
 
     while (1) {
+        if (connection.hasJoinedGame()) {
+            think();
+            createCommand();
+        }
+
         if (!outputQueue.empty()) {
             Message message = outputQueue.front();
             outputQueue.pop();
+
             if (message.isConnectionless()) {
                 connection.sendConnectionless(message);
             } else {
                 connection.send(message);
             }
-        }
-
-        if (connection.hasJoinedGame()) {
-            think();
-            createCommand();
         }
 
         Message message;
@@ -114,8 +113,7 @@ void Bot::getChallenge() {
                         // Read proto version info...
                         msg.readLong();
                     }
-
-                    strcpy(userInfo, "\\team\\blue\\skin\\tf_sold\\rate\\25000\\name\\krupt_drv\\msg\\1\\noaim\\1\\*client\\dumbo\\topcolor\\13\\bottomcolor\\13\\pmodel\\33168\\emodel\\6967\\*z_ext\\511");
+		    strcpy(userInfo, "\\team\\blue\\skin\\tf_sold\\rate\\25000\\name\\krupt_drv\\msg\\1\\noaim\\1\\*client\\dumbo\\topcolor\\13\\bottomcolor\\13\\pmodel\\33168\\emodel\\6967\\*z_ext\\511");
                     snprintf(data, sizeof (data), "\xff\xff\xff\xff" "connect %i %i %i \"%s\"\n", PROTOCOL_VERSION, connection.getQport(), challenge, userInfo);
                     Message s;
                     s.writeString(data);
@@ -499,12 +497,22 @@ void Bot::parseServerMessage(Message * message) {
                 armor = message->readByte();
                 blood = message->readByte();
                 float coords[3];
+                float dotP = 0;
+
                 for (int i = 0; i < 3; i++) {
-                    coords[i] = message->readFloat();
+                    coords[i] = message->readCoord();
+                    dotP += coords[i] * coords[i];
                 }
-                cout << "svc_damage: ARMOR " << armor << " BLOOD = " << blood
+
+                // For some reason when dotP is equal to 0, that means that the bot got hit by rocket, armor
+                // is the amount taken off of armor and blood is the amount taken out of health.
+                if (dotP <= 0) { 
+
+                  cout << "svc_damage: ARMOR " << armor << " BLOOD = " << blood
                         << " " << coords[0] << " " << coords[1] << " " << coords[2]
                         << endl;
+
+                }
                 break;
             }
             case svc_sound:
@@ -584,22 +592,18 @@ void Bot::join() {
     sendBegin();
 
     sleep(2);
-    for (int i = 0; i < 30; i++) {
-        cmds[frame].impulse = 1;
-        frame = (frame + 1) % UPDATE_BACKUP;
-        createCommand();
-        Message msg;
-        connection.recv(&msg, true);
-    }
+    cmds[frame].impulse = 1;
+    frame = (frame + 1) % UPDATE_BACKUP;
+    createCommand();
+    Message msg;
+    connection.recv(&msg, true);
 
     sleep(2);
-    for (int i = 0; i < 30; i++) {
-        cmds[frame].impulse = 3;
-        frame = (frame + 1) % UPDATE_BACKUP;
-        createCommand();
-        Message msg;
-        connection.recv(&msg, true);
-    }
+    cmds[frame].impulse = 3;
+    frame = (frame + 1) % UPDATE_BACKUP;
+    createCommand();
+    connection.recv(&msg, true);
+
     sleep(2);
     sendDisableChat();
     connection.handshakeComplete();
@@ -766,6 +770,13 @@ void Bot::createCommand() {
 
     s.setCurrentSize(size);
 
+    stringstream ss;
+    vector<byte> bytes = s.getData();
+    for(int i = 0; i < bytes.size(); i++) {
+      ss << bytes.at(i);
+    }
+    
+    //outputQueue.push(s);
     connection.send(s);
 }
 
@@ -801,13 +812,13 @@ void Bot::think() {
     if (targetSlot == me->slot) {
         return;
     }
-//    if (elapsedTime > 0.01) {
+
+    ActionType at = (ActionType)(rand() % 5);
+
         
         float px = players[targetSlot].coords[0];
         float pz = players[targetSlot].coords[1];
         float py = players[targetSlot].coords[2];
-
-        vector<double> inputs;
 
         glm::vec3 targetPos = glm::vec3(px, py, pz);
         glm::vec3 botPos = glm::vec3(mx, my, mz);
@@ -819,55 +830,8 @@ void Bot::think() {
         float diffx = abs(px - mx);
         float diffz = abs(pz - mz);
 
-//        inputs.push_back(dir.x);
-//        inputs.push_back(dir.z);
-        inputs.push_back(diffx);
-        inputs.push_back(diffz);
-        inputs.push_back(dist);
-
-        vector<double> outputs = brain.update(inputs);
-
-        if (outputs.size() < NeuralNet::numOutputs) {
-            cout << "ANN error output is less than expected outputs" << endl;
-            return;
-        }
-
-        double fitness = 1 / (double) (diffx + diffz + 1);
-        vector<double> weights = brain.getWeights();
-
-        Genome * genome = &genomes.back();
-        genome->setGenes(weights);
-        genome->setFitness(fitness);
-
-        std::sort(genomes.begin(), genomes.end());
-
         int maxIndex = 0;
         double maxValue = -9999.0;
-
-        for (int i = 0; i < outputs.size(); i++) {
-            if (outputs.at(i) > maxValue) {
-                maxValue = outputs.at(i);
-                maxIndex = i;
-            }
-        }
-
-        ActionType at = (ActionType) maxIndex;
-
-
-        //    if (1.5 < elapsedTime) {
-
-        cout << "ANN generation = " << generation << " fittest score = " << genome->getFitness() << " action = " << at << " genomes size = " << genomes.size() << endl;
-
-        if (genomes.size() > MAX_GENOMES) {
-            cout << "ANN popping weakest genome of " << genomes.front().getFitness() << " size of vector " << genomes.size() << endl;
-            genomes.erase(genomes.begin());
-        }
-
-        epoch();
-        //    }
-
-        cout << "ANN time > 2.0" << endl;
-        //        if (at == ActionType::NONE) {
         cmds[frame].buttons = 0;
         cmds[frame].forwardMove = 0;
         cmds[frame].sideMove = 0;
@@ -890,17 +854,6 @@ void Bot::think() {
         
         cmds[frame].msec = ms;
         frame = (frame + 1) % UPDATE_BACKUP;
-//    }
-
-    
-    //    
-    //        int myrandom = rand() % 10;
-    //        if (elapsedTime > 4 && myrandom > 5) {
-    //            elapsedTime = 0;
-    //            button = 0;
-    //        } else if (elapsedTime > 3) {
-    //            button = 0;
-    //        }
 
 }
 
