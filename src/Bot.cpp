@@ -815,46 +815,48 @@ void Bot::think() {
 
     ActionType at = (ActionType)(rand() % 5);
 
-        
-        float px = players[targetSlot].coords[0];
-        float pz = players[targetSlot].coords[1];
-        float py = players[targetSlot].coords[2];
+    float px = players[targetSlot].coords[0];
+    float pz = players[targetSlot].coords[1];
+    float py = players[targetSlot].coords[2];
 
-        glm::vec3 targetPos = glm::vec3(px, py, pz);
-        glm::vec3 botPos = glm::vec3(mx, my, mz);
+    glm::vec3 targetPos = glm::vec3(px, py, pz);
+    glm::vec3 botPos = glm::vec3(mx, my, mz);
 
-        glm::vec3 dir = glm::normalize(targetPos - botPos);
+    glm::vec3 dir = targetPos - botPos;
 
-        float dist = glm::distance(targetPos, botPos);
+    float dist = glm::distance(targetPos, botPos);
 
-        float diffx = abs(px - mx);
-        float diffz = abs(pz - mz);
+    float diffx = px - mx;
+    float diffz = pz - mz;
+    int maxIndex = 0;
+    double maxValue = -9999.0;
+    cmds[frame].buttons = 0;
+    cmds[frame].forwardMove = 0;
+    cmds[frame].sideMove = 0;
+    cmds[frame].impulse = 0;
+    cmds[frame].upMove = 0;
+    cmds[frame].angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0/PI));
+    cout << "look at angle = " << cmds[frame].angles[1] << " px = " << px << " pz = " << pz << endl;
 
-        int maxIndex = 0;
-        double maxValue = -9999.0;
-        cmds[frame].buttons = 0;
-        cmds[frame].forwardMove = 0;
-        cmds[frame].sideMove = 0;
-        cmds[frame].impulse = 0;
-        cmds[frame].upMove = 0;
-        cmds[frame].angles[1] = 90;
-        if (at == ActionType::ATTACK) {
-            cmds[frame].buttons = 1;
-        } else if (at == ActionType::WALK) {
-            cmds[frame].forwardMove = 500;
-        } else if (at == ActionType::WALK_BACK) {
-            cmds[frame].forwardMove = -500;
-        } else if (at == ActionType::SIDE_LEFT) {
-            cmds[frame].sideMove = 500;
-        } else if (at == ActionType::SIDE_RIGHT) {
-            cmds[frame].sideMove = -500;
-        }
-        elapsedTime = 0.0;
-        
-        
-        cmds[frame].msec = ms;
-        frame = (frame + 1) % UPDATE_BACKUP;
+    if (diffx < 0) {
+      cmds[frame].sideMove = -500;
+    } else if (diffx > 0) {
+      cmds[frame].sideMove = 500;
+    }
 
+    if (diffz < 0) {
+      cmds[frame].forwardMove = -500;
+    } else if(diffz > 0) {
+      cmds[frame].forwardMove = 500;
+    }
+
+    if (at == ActionType::ATTACK) {
+	cmds[frame].buttons = 1;
+    }
+
+    elapsedTime = 0.0;
+    cmds[frame].msec = ms;
+    frame = (frame + 1) % UPDATE_BACKUP;
 }
 
 void Bot::epoch() {
