@@ -424,31 +424,31 @@ void Bot::parseServerMessage(Message * message) {
                     // Need to be vary of version for protoVersion
                     // if (client.protoVersion <= 26) ... 
                     if (bits & CM_ANGLE1) {
-                        cout << "CM_ANGLE1" << num << ")" << "  = " << message->readFloat() << endl;
+                        cout << "CM_ANGLE1(" << num << ")" << "  = " << message->readFloat() << endl;
                     }
                     if (bits & CM_ANGLE3) {
-                        cout << "CM_ANGLE3" << num << ")" << "  = " << message->readFloat() << endl;
+                        cout << "CM_ANGLE3(" << num << ")" << "  = " << message->readFloat() << endl;
                     }
 
                     if (bits & CM_FORWARD) {
-                        cout << "CM_FORWARD" << num << ")" << " = " << (message->readByte() << 3) << endl;
+                        cout << "CM_FORWARD(" << num << ")" << " = " << (message->readByte() << 3) << endl;
                     }
                     if (bits & CM_SIDE) {
-                        cout << "CM_SIDE " << num << ")" << "   = " << (message->readByte() << 3) << endl;
+                        cout << "CM_SIDE(" << num << ")" << "   = " << (message->readByte() << 3) << endl;
                     }
                     if (bits & CM_UP) {
-                        cout << "CM_UP" << num << ")" << "      = " << (message->readByte() << 3) << endl;
+                        cout << "CM_UP(" << num << ")" << "      = " << (message->readByte() << 3) << endl;
                     }
 
                     if (bits & CM_BUTTONS) {
-                        cout << "CM_BUTTONS" << num << ")" << " = " << message->readByte() << endl;
+                        cout << "CM_BUTTONS(" << num << ")" << " = " << message->readByte() << endl;
                     }
 
                     if (bits & CM_IMPULSE) {
-                        cout << "CM_IMPULSE" << num << ")" << " = " << message->readByte() << endl;
+                        cout << "CM_IMPULSE(" << num << ")" << " = " << message->readByte() << endl;
                     }
 
-                    cout << "MSEC" << num << ")" << "       = " << message->readByte() << endl;
+                    cout << "MSEC(" << num << ")" << "       = " << message->readByte() << endl;
                 }
 
                 for (int i = 0; i < 3; i++) {
