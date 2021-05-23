@@ -62,6 +62,7 @@ private:
   queue<Message> inputQueue;
 
   vector<Genome> genomes;
+	vector<glm::vec3> waypoints;
 
   int generation;
   float crossoverRate;

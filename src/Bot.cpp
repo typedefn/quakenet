@@ -36,6 +36,35 @@ void Bot::mainLoop() {
     connection.connect();
     getChallenge();
 
+		// Assuming this is a 1on1r.map so load 1on1r.bot
+    fstream fs;
+		string filename("../resources/1on1r.bot");
+				
+		fs.open(filename, fstream::in);
+		if (fs.fail()) {
+		  stringstream ss;
+			ss << "Failed to open " << filename;
+			throw runtime_error(ss.str());
+	  }
+
+		char junk;
+
+		while(!fs.eof()) {
+			stringstream ss;
+			string type;
+			char line[256] = { 0 };
+			fs.getline(line, 256);
+			ss << line;
+			if (line[0] == 'w' && line[1] == 'p') {
+				glm::vec3 waypoint;
+				ss >> junk >> junk >> waypoint.x >> waypoint.y >> waypoint.z;
+				waypoints.push_back(waypoint);
+			}	
+		}
+
+		fs.close();
+	    	
+
     while (1) {
         if (connection.hasJoinedGame()) {
             think();
@@ -409,7 +438,7 @@ void Bot::parseServerMessage(Message * message) {
                 for (int i = 0; i < 3; i++) {
                     float a = message->readFloat();
                     players[num].coords[i] = a;
-                    cout << "client = " << num << " coord = " << a << endl;
+                    cout << "client = " << num << "  i = " << i << " coord = " << a << endl;
                 }
 
                 byte frame = message->readByte();
@@ -782,6 +811,8 @@ void Bot::createCommand() {
 
 void Bot::think() {
     static double extramsec = 0;
+    static int wi = 0;
+    static bool attack = false;
 
     extramsec += 0.5 * 1000;
     int ms = extramsec;
@@ -813,21 +844,38 @@ void Bot::think() {
         return;
     }
 
+    const float maxDistance = 30.0;
+    float px = 0;
+    float py = 0;
+    float pz = 0;
+    
+
     ActionType at = (ActionType)(rand() % 5);
 
-    float px = players[targetSlot].coords[0];
-    float pz = players[targetSlot].coords[1];
-    float py = players[targetSlot].coords[2];
+    if (at == ActionType::ATTACK && attack) {
+      px = players[targetSlot].coords[0];
+      pz = players[targetSlot].coords[1];
+      py = players[targetSlot].coords[2];
+    } else {
+      px = waypoints.at(wi).x;
+      py = my;
+      pz = waypoints.at(wi).z;
+    }
 
     glm::vec3 targetPos = glm::vec3(px, py, pz);
     glm::vec3 botPos = glm::vec3(mx, my, mz);
+    float dist = glm::distance(targetPos, botPos);
 
     glm::vec3 dir = targetPos - botPos;
 
-    float dist = glm::distance(targetPos, botPos);
-
     float diffx = px - mx;
     float diffz = pz - mz;
+ 
+    if (dist <= maxDistance) {
+      wi = (wi + 1) % waypoints.size();
+      attack = !attack;
+    }
+
     int maxIndex = 0;
     double maxValue = -9999.0;
     cmds[frame].buttons = 0;
@@ -837,20 +885,23 @@ void Bot::think() {
     cmds[frame].upMove = 0;
     cmds[frame].angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0/PI));
     cout << "look at angle = " << cmds[frame].angles[1] << " px = " << px << " pz = " << pz << endl;
+    glm::vec3 mv = glm::normalize(dir);
 
-    if (diffx < 0) {
+    cout << "dist = " << dist << " xyz = " << px << " " << py << " " << pz << " mv x,z = " << mv.x << " " << mv.z << " wi = " << wi << endl;
+
+/*
+    if (mv.x < 0) {
       cmds[frame].sideMove = -500;
-    } else if (diffx > 0) {
+    } else if (mv.x > 0) {
       cmds[frame].sideMove = 500;
     }
+*/
 
-    if (diffz < 0) {
-      cmds[frame].forwardMove = -500;
-    } else if(diffz > 0) {
+    if (dist > 35) {
       cmds[frame].forwardMove = 500;
     }
 
-    if (at == ActionType::ATTACK) {
+    if (at == ActionType::ATTACK && attack) {
 	cmds[frame].buttons = 1;
     }
 
