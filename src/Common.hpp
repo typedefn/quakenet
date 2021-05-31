@@ -25,13 +25,14 @@
 #include <queue>
 #include <vector>
 #include <sstream>
-#include <pthread.h>
+#include <thread>
 #include <sys/time.h>
 #include <math.h>
 #include <glm/glm.hpp>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+
 
 using namespace std;
 
