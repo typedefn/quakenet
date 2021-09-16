@@ -13,21 +13,9 @@
 #include "Utility.hpp"
 #include "Genome.hpp"
 #include "NeuralNet.hpp"
+#include "Entity.hpp"
 
 #define MAX_GENOMES 127
-
-struct PlayerInfo {
-	long userId;
-	char name[32];
-	int frags;
-	int ping;
-	byte pl;
-	float entertime;
-	int slot;
-	float coords[3];
-	int frame;
-	short flags;
-};
 
 class Bot {
 public:
@@ -49,6 +37,7 @@ private:
 	bool targetSelected;
 	float elapsedTime;
 	float totalTime;
+
 
 	Command cmd;
 	Command nullcmd;
@@ -72,6 +61,8 @@ private:
 
 	vector<vector<double>> memory;
 	std::thread thinker;
+
+public:
 
 	double getTime();
 	void getChallenge();

@@ -32,9 +32,14 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <memory>
+#include <list>
+#include <glm/common.hpp>
+#include <glm/geometric.hpp>
 
 
 using namespace std;
+using namespace glm;
 
 #endif /* COMMON_HPP */
 

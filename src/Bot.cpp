@@ -5,9 +5,6 @@
  * Created on February 21, 2021, 8:35 AM
  */
 
-#include <glm/common.hpp>
-#include <glm/geometric.hpp>
-
 #include "Bot.hpp"
 #include "Gene.hpp"
 
@@ -849,7 +846,7 @@ void Bot::think() {
 }
 
 bool Bot::isTargetClose() {
-	const float maxDistance = 1000.0;
+	const float maxDistance = 420.0;
 
 	glm::vec3 targetPosition(players[targetSlot].coords[0],
 			players[targetSlot].coords[2], players[targetSlot].coords[1]);
@@ -861,6 +858,8 @@ bool Bot::isTargetClose() {
 
 	float dist = glm::distance(targetPosition, position);
 	float deltaAngle = glm::dot(directionToTarget, facing);
+
+        cout << getTime() << " STATE : DIST = " << dist << endl;
 
 	if (dist <= maxDistance && deltaAngle >= 0.10) {
 		return true;
