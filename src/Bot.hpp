@@ -16,7 +16,19 @@
 #include "Entity.hpp"
 
 #define MAX_GENOMES 127
-
+enum HandShakeState {
+	None,
+	Info,
+	Prespawn,
+	Spawn,
+	Begin,
+	JoinTeam,
+	SelectClass,
+	DisableChat,
+	Waiting,
+	Connected,
+	Done,
+};
 class Bot {
 public:
 	Bot();
@@ -25,6 +37,7 @@ public:
 	void mainLoop();
 
 private:
+	HandShakeState currentState;
 
 	PlayerInfo *me;
 	PlayerInfo players[MAX_CLIENTS];
@@ -37,7 +50,7 @@ private:
 	bool targetSelected;
 	float elapsedTime;
 	float totalTime;
-
+	int newCount;
 
 	Command cmd;
 	Command nullcmd;
@@ -61,7 +74,10 @@ private:
 
 	vector<vector<double>> memory;
 	std::thread thinker;
+	Message lastMessage;
+ int delay;
 
+ void nullCommand(Command * cmd);
 public:
 
 	double getTime();
@@ -70,13 +86,15 @@ public:
 	void sendIp(const string &realIp);
 	void sendExtensions();
 	void sendNew();
-	void join();
+	void updateState();
 	void setInfo();
-	void requestPrespawn();
+	void requestPrespawn(std::string prespawn);
 	void requestSpawn();
+	void requestSpawn2();
+	void sendImpulse(byte impulse);
 	void sendBegin();
 	void sendDisableChat();
-	void createCommand();
+	void createCommand(Message * s);
 	void think();
 	void createStartPopulation();
 	void epoch();
@@ -90,6 +108,11 @@ public:
 	void patrol();
 	bool isTargetClose();
 	void attackTarget();
+	void requestStringCommand(string value);
+	void requestStringCommand(string value, double delay);
+	void parseStatic(Message * msg);
+	void sendJunk(Message * s);
+	void requestMoveCommand();
 };
 
 #endif /* BOT_HPP */

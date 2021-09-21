@@ -82,6 +82,7 @@ public:
     return connectionless;
   }
   
+  double delay;
 private:
   int msgReadCount;
   bool msgBadRead;
@@ -101,8 +102,8 @@ public:
   virtual ~Connection();
 
   void connect();  
-  void send(Message msg);
-  void sendConnectionless(Message msg);
+  int send(Message msg);
+  int sendConnectionless(Message msg);
   
   bool recv(Message * msg, bool block);
   bool process(Message *msg);
@@ -121,6 +122,8 @@ public:
   int getOutgoingSequence() const {
     return outgoingSequence;
   }
+
+  void writeHeader(Message *msg);
 private:
 
   int incomingSequence;
@@ -138,8 +141,8 @@ private:
   struct sockaddr_in servaddr;
   int qport;
   
-  void writeHeader(Message *msg);
-  void sendInner(Message * msg);
+
+  int sendInner(Message * msg);
 };
 
 #endif /* CONNECTION_HPP */

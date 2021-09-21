@@ -22,13 +22,17 @@ Bot::Bot() {
 	generation = 0;
 	genomeIndex = 0;
 	totalTime = 0;
+	currentState = None;
 	srand(time(nullptr));
+	newCount = 0;
+	delay = 0;
 }
 
 Bot::~Bot() {
 }
 
 void Bot::mainLoop() {
+	nullCommand(&nullcmd);
 	connection.connect();
 	getChallenge();
 
@@ -60,24 +64,47 @@ void Bot::mainLoop() {
 
 	fs.close();
 
+	double lastSent = 0;
+	double lastReceived = 0;
+	double timePassed = 0;
+	int counter = 0;
+
+//	requestStringCommand("new");
+
 	while (1) {
+		int s = 0;
 		if (!outputQueue.empty()) {
 			Message message = outputQueue.front();
-			outputQueue.pop();
-
-			if (message.isConnectionless()) {
-				connection.sendConnectionless(message);
-			} else {
-				connection.send(message);
+			double deltaTime = (timePassed - lastSent);
+//			cout << "delta time = " << deltaTime << " msg.delay "
+//					<< message.delay << endl;
+			if (deltaTime >= message.delay) {
+				if (message.isConnectionless()) {
+					s = connection.sendConnectionless(message);
+				} else {
+					s = connection.send(message);
+				}
+				lastSent = getTime();
+				std::cout << " sent delayed msg of size " << s << endl;
+				lastMessage.clear();
+				message.copyMessage(&lastMessage);
+				outputQueue.pop();
 			}
 		}
 
 		Message message;
-		if (connection.recv(&message, false)) {
+		while (connection.recv(&message, false)) {
 			connection.process(&message);
 			parseServerMessage(&message);
+			lastReceived = getTime();
 		}
 
+		if ((timePassed - lastReceived) > 1.5) {
+			updateState();
+			lastReceived = getTime();
+		}
+
+		timePassed = getTime();
 		usleep(10000);
 	}
 }
@@ -109,7 +136,7 @@ void Bot::getChallenge() {
 
 	while (!established) {
 		msg.clear();
-		if (connection.recv(&msg, false)) {
+		if (connection.recv(&msg, true)) {
 			msg.beginRead();
 			msg.readLong();
 			c = msg.readByte();
@@ -131,10 +158,11 @@ void Bot::getChallenge() {
 					msg.readLong();
 				}
 				strcpy(userInfo,
-						"\\team\\blue\\skin\\tf_sold\\rate\\25000\\name\\krupt_drv\\msg\\1\\noaim\\1\\*client\\dumbo\\topcolor\\13\\bottomcolor\\13\\pmodel\\33168\\emodel\\6967\\*z_ext\\511");
+						"\\team\\blue\\skin\\tf_sold\\rate\\25000\\name\\krupt_drv\\msg\\1\\noaim\\1\\*client\\dumbo\\topcolor\\13\\bottomcolor\\13\\pmodel\\13845\\emodel\\6967\\chat\\1\\*z_ext\\511");
 				snprintf(data, sizeof(data),
-						"\xff\xff\xff\xff" "connect %i %i %i \"%s\"\n", PROTOCOL_VERSION,
-						connection.getQport(), challenge, userInfo);
+						"\xff\xff\xff\xff" "connect %i %i %i \"%s\"\n",
+						PROTOCOL_VERSION, connection.getQport(), challenge,
+						userInfo);
 				Message s;
 				s.writeString(data);
 				s.writeString("0x58455446 0x2140f000");
@@ -171,7 +199,7 @@ void Bot::getChallenge() {
 	msg.writeChar(0);
 	msg.writeChar(0);
 	msg.writeChar('!');
-	connection.send(msg);
+	outputQueue.push(msg);
 
 	msg.clear();
 	msg.writeChar(3);
@@ -183,7 +211,7 @@ void Bot::getChallenge() {
 	msg.writeChar('!');
 	msg.writeChar(0);
 	msg.writeChar(14);
-	connection.send(msg);
+	outputQueue.push(msg);
 
 	msg.clear();
 	connection.recv(&msg, true);
@@ -198,7 +226,7 @@ void Bot::getChallenge() {
 	msg.writeChar(14);
 	msg.writeChar(0);
 	msg.writeChar(14);
-	connection.send(msg);
+	outputQueue.push(msg);
 
 	msg.clear();
 	msg.writeChar(4);
@@ -213,12 +241,15 @@ void Bot::getChallenge() {
 	msg.writeChar(14);
 	msg.writeChar(0);
 	msg.writeChar(14);
-	connection.send(msg);
+	outputQueue.push(msg);
+//	sendExtensions();
 }
 
 void Bot::parseServerMessage(Message *message) {
 	int msgSvcStart = 0;
 	int cmd = 0;
+	int spawnCount = 0;
+	unsigned protover;
 
 	while (1) {
 		if (message->isBadRead()) {
@@ -234,8 +265,90 @@ void Bot::parseServerMessage(Message *message) {
 			break;
 		}
 
+		cout << "cmd = " << cmd << endl;
+
 		switch (cmd) {
 		case svc_nop: {
+			break;
+		}
+
+		case svc_packetentities: {
+			for (int i = 0; i < 7; i++) {
+				message->readByte();
+			}
+			break;
+		}
+		case svc_modellist: {
+			int numModels, n;
+			char *str;
+			if (protover >= 26) {
+				numModels = message->readByte();
+
+				while (1) {
+					str = message->readString();
+					if (!str[0]) {
+						break;
+					}
+
+					numModels++;
+
+					if (str[0] == '/') {
+						str++;
+					}
+				}
+
+				if ((n = message->readByte())) {
+					stringstream ss;
+					ss << "modellist 1 " << n;
+					requestStringCommand(ss.str());
+
+					cout << "MODEL LIST = " << n << "out of " << numModels
+							<< endl;
+					currentState = Prespawn;
+					return;
+				}
+
+			}
+
+			break;
+		}
+		case svc_download: {
+			int size, percent;
+			int s = 0;
+			size = message->readShort();
+			cout << "SIZE = " << size << endl;
+			for (s = 0; s < 24; s++) {
+				message->readByte();
+			}
+//			sendBegin();
+//			requestStringCommand("setinfo \"skin\" \"base\"");
+//			sendJoinTeam();
+//			sendSelectClass();
+//			sendDisableChat();
+//			sendJoinTeam();
+//			sendSelectClass();
+			break;
+		}
+		case svc_spawnstaticsound: {
+			//read junk
+			for (int i = 0; i < 3; i++) {
+				message->readCoord();
+			}
+			for (int i = 0; i < 3; i++) {
+				message->readByte();
+			}
+			break;
+		}
+		case svc_fte_spawnstatic2: {
+			// Static entities are non-interactive world objects like torches.
+			parseStatic(message);
+			for (int i = 0; i < 17; i++) {
+				message->readByte();
+			}
+			break;
+		}
+		case svc_fte_spawnbaseline2: {
+			parseStatic(message);
 			break;
 		}
 		case nq_svc_time: {
@@ -246,6 +359,53 @@ void Bot::parseServerMessage(Message *message) {
 			int i = message->readByte();
 			int j = message->readByte();
 			cout << "svc_updatestat: " << i << " " << j << endl;
+
+			break;
+		}
+		case svc_soundlist: {
+			char *str;
+			int n;
+			byte numSounds;
+			if (protover >= 26) {
+				numSounds = message->readByte();
+
+				while (1) {
+					str = message->readString();
+					if (!str[0]) {
+						break;
+					}
+
+					numSounds++;
+
+					if (str[0] == '/') {
+						str++;
+					}
+				}
+
+				n = message->readByte();
+
+				if (n) {
+					stringstream ss;
+					ss << "soundlist" << " " << 1 << " " << n;
+					requestStringCommand(ss.str());
+					return;
+				}
+			} else {
+
+				numSounds = 0;
+
+				do {
+					if (++numSounds > 255) {
+						cout << "Error send to many sound_precache" << endl;
+					}
+					str = message->readString();
+				} while (*str);
+			}
+
+			// Now request model list.
+
+			stringstream ss;
+			requestStringCommand("modellist 1 0");
 			break;
 		}
 		case svc_intermission: {
@@ -265,8 +425,26 @@ void Bot::parseServerMessage(Message *message) {
 			break;
 		}
 		case svc_print: {
-			message->readByte();
-			message->readString();
+			int id = message->readByte();
+			byte *dbyte = (byte*) message->readString();
+			cout << "Recv: ";
+			for (int i = 0; i < message->getSize(); i++) {
+				if (dbyte[i] >= 32 && dbyte[i] <= 126) {
+					cout << (char) dbyte[i];
+				} else {
+					cout << "[" << (int) dbyte[i] << "]";
+				}
+			}
+			cout << endl;
+
+//			if (currentState == Info) {
+//				currentState = Begin;
+//			}
+
+//			if (p == " joined!\n") {
+//				currentState = JoinTeam;
+//			}
+
 			break;
 		}
 		case svc_centerprint: {
@@ -281,13 +459,16 @@ void Bot::parseServerMessage(Message *message) {
 			int slot = message->readByte();
 
 			if (slot >= MAX_CLIENTS) {
+				std::cout << "setinfo > MAX_CLIENTS" << endl;
 				break;
 			}
 
 			string key(message->readString());
 			string value(message->readString());
 
-			cout << "svc_setinfo(" << slot << "):" << key << "\\" << value << endl;
+			cout << "svc_setinfo(" << slot << "):" << key << "\\" << value
+					<< endl;
+
 			break;
 		}
 		case svc_updatefrags: {
@@ -323,10 +504,32 @@ void Bot::parseServerMessage(Message *message) {
 			break;
 		}
 		case svc_serverdata: {
-			unsigned protover;
-			protover = message->readLong();
-			cout << "proto version " << protover << endl;
+			for (;;) {
+				protover = message->readLong();
+				cout << "proto version " << protover << endl;
+				if (message->isBadRead()) {
+					break;
+				}
 
+				if (protover == PROTOCOL_VERSION_FTE) {
+					long fteextensions = message->readLong();
+					continue;
+				}
+
+				if (protover == PROTOCOL_VERSION_FTE2) {
+					long fteext = message->readLong();
+					continue;
+				}
+
+				if (protover == PROTOCOL_VERSION_MVD1) {
+					long ext = message->readLong();
+					continue;
+				}
+
+				if (protover == PROTOCOL_VERSION) {
+					break;
+				}
+			}
 			message->readLong();
 
 			// Gamedir
@@ -341,6 +544,22 @@ void Bot::parseServerMessage(Message *message) {
 
 			// Get the full level name
 			message->readString();
+
+			if (protover >= 25) {
+				float gravity = message->readFloat();
+				float stopspeed = message->readFloat();
+				float maxspeed = message->readFloat();
+				float specMaxSpeed = message->readFloat();
+				float accelerate = message->readFloat();
+				float airAccelerate = message->readFloat();
+				float waterAccelerate = message->readFloat();
+				float friction = message->readFloat();
+				float waterFriction = message->readFloat();
+				float entGravity = message->readFloat();
+			}
+
+			//ask for sound list
+//			requestStringCommand("soundlist 1 0");
 			break;
 		}
 		case svc_stufftext: {
@@ -352,40 +571,85 @@ void Bot::parseServerMessage(Message *message) {
 				tokens.push_back(temp);
 			}
 
-			cout << "svc_stufftext: " << line << endl;
+			std::size_t pos = line.find("cmd");
 
-			if (tokens.size() > 1 && tokens[0] == "packet" && tokens[2] == "\"ip") {
+			cout << "svc_stufftext: [" << line << "]" << endl;
+			if (tokens.size() > 1 && tokens[0] == "packet"
+					&& tokens[2] == "\"ip") {
 				string realIpVal = tokens[4].substr(0, tokens[4].size() - 5);
 				sendIp(realIpVal);
-				sendNew();
+				requestStringCommand("new");
 			} else if (tokens.size() > 1 && tokens[1] == "pext\n") {
 				sendExtensions();
-			} else if (tokens.size() > 1 && tokens[1] == "new\n") {
-				sendNew();
+			} else if (tokens.size() >= 2 && tokens[0] == "cmd") {
+
+				if (tokens.at(1) == "skin") {
+					break;
+				}
+
+				stringstream ss;
+				for (int i = 0; i < tokens.size() - 1; i++) {
+					string t = tokens.at(i + 1);
+					if (i == tokens.size() - 2) {
+						t.pop_back();
+					}
+					ss << t;
+					if (i < tokens.size() - 2) {
+						ss << " ";
+					}
+				}
+				requestStringCommand(ss.str());
 			} else if (tokens.size() > 0 && tokens[0] == "fullserverinfo") {
-				join();
+				currentState = Info;
+			} else if (tokens.size() == 1 && tokens[0] == "skins\n") {
+				if (currentState == Begin) {
+					sendBegin();
+					currentState = None;
+				}
+//				currentState = JoinTeam;
+			} else if (tokens.size()
+					== 2 /* && (tokens[0] != "prespawn" || tokens[0] != "spawn") */) {
+//				stringstream ss;
+//				string t = tokens[1];
+//				t.pop_back();
+//
+////				if (tokens[0] == "team" && t == "blue") {
+////					currentState = SelectClass;
+////				}
+//
+//				ss << tokens[0] << " " << t;
+//				requestStringCommand(ss.str());
 			}
 			break;
 		}
 		case svc_updateuserinfo: {
 			int slot = message->readByte();
 			if (slot >= MAX_CLIENTS) {
-				cout << "slot(" << slot << ") is greater than " << MAX_CLIENTS << endl;
+				cout << "slot(" << slot << ") is greater than " << MAX_CLIENTS
+						<< endl;
 				break;
 			}
 
 			long userId = message->readLong();
 			string value(message->readString());
 			string name = Utility::findValue("name", value);
-			cout << "ME AM IN SLOT " << name << endl;
+			cout << "name is " << name << endl;
 			// TODO: fix hardcoded name of bot later.
 			if (name == "krupt_drv") {
-				cout << "ME AM IN SLOT " << slot << endl;
+				cout << "ME AM IN SLOT " << slot << " id = " << userId << endl;
 				me = &players[slot];
 				me->userId = userId;
 				me->slot = slot;
+				if (currentState == None) {
+					currentState = JoinTeam;
+				}
 			}
 			cout << "svc_updateuserinfo:(" << slot << "): " << value << endl;
+
+			break;
+		}
+		case svc_cdtrack: {
+			byte cdTrack = message->readByte();
 			break;
 		}
 		case svc_playerinfo: {
@@ -407,7 +671,8 @@ void Bot::parseServerMessage(Message *message) {
 			for (int i = 0; i < 3; i++) {
 				float a = message->readFloat();
 				players[num].coords[i] = a;
-				cout << "client = " << num << "  i = " << i << " coord = " << a << endl;
+				cout << "client = " << num << "  i = " << i << " coord = " << a
+						<< endl;
 			}
 
 			byte frame = message->readByte();
@@ -422,12 +687,12 @@ void Bot::parseServerMessage(Message *message) {
 				// Need to be vary of version for protoVersion
 				// if (client.protoVersion <= 26) ...
 				if (bits & CM_ANGLE1) {
-					cout << "CM_ANGLE1(" << num << ")" << "  = " << message->readFloat()
-							<< endl;
+					cout << "CM_ANGLE1(" << num << ")" << "  = "
+							<< message->readFloat() << endl;
 				}
 				if (bits & CM_ANGLE3) {
-					cout << "CM_ANGLE3(" << num << ")" << "  = " << message->readFloat()
-							<< endl;
+					cout << "CM_ANGLE3(" << num << ")" << "  = "
+							<< message->readFloat() << endl;
 				}
 
 				if (bits & CM_FORWARD) {
@@ -444,17 +709,17 @@ void Bot::parseServerMessage(Message *message) {
 				}
 
 				if (bits & CM_BUTTONS) {
-					cout << "CM_BUTTONS(" << num << ")" << " = " << message->readByte()
-							<< endl;
+					cout << "CM_BUTTONS(" << num << ")" << " = "
+							<< message->readByte() << endl;
 				}
 
 				if (bits & CM_IMPULSE) {
-					cout << "CM_IMPULSE(" << num << ")" << " = " << message->readByte()
-							<< endl;
+					cout << "CM_IMPULSE(" << num << ")" << " = "
+							<< message->readByte() << endl;
 				}
 
-				cout << "MSEC(" << num << ")" << "       = " << message->readByte()
-						<< endl;
+				cout << "MSEC(" << num << ")" << "       = "
+						<< message->readByte() << endl;
 			}
 
 			for (int i = 0; i < 3; i++) {
@@ -467,6 +732,9 @@ void Bot::parseServerMessage(Message *message) {
 			if (flags & PF_MODEL) {
 				cout << "PF_MODEL(" << num << ")" << "         =  "
 						<< message->readByte() << endl;
+				if (num == me->slot) {
+//					join();
+				}
 			}
 
 			if (flags & PF_SKINNUM) {
@@ -480,8 +748,8 @@ void Bot::parseServerMessage(Message *message) {
 			}
 
 			if (flags & PF_WEAPONFRAME) {
-				cout << "PF_WEAPONFRAME(" << num << ")" << " = " << message->readByte()
-						<< endl;
+				cout << "PF_WEAPONFRAME(" << num << ")" << " = "
+						<< message->readByte() << endl;
 			}
 
 			cout << "---end---" << endl;
@@ -490,6 +758,12 @@ void Bot::parseServerMessage(Message *message) {
 		}
 		case svc_lightstyle: {
 			message->readByte();
+			message->readString();
+			break;
+		}
+		case svc_updatestatlong: {
+			message->readByte();
+			message->readLong();
 			break;
 		}
 		case svc_setangle: {
@@ -497,7 +771,8 @@ void Bot::parseServerMessage(Message *message) {
 			float y = message->readFloat();
 			float z = message->readFloat();
 
-			cout << "svc_setangle x = " << x << " y = " << y << " z = " << z << endl;
+			cout << "svc_setangle x = " << x << " y = " << y << " z = " << z
+					<< endl;
 			break;
 		}
 		case svc_damage: {
@@ -515,8 +790,9 @@ void Bot::parseServerMessage(Message *message) {
 			// is the amount taken off of armor and blood is the amount taken out of health.
 			if (dotP <= 0) {
 
-				cout << "svc_damage: ARMOR " << armor << " BLOOD = " << blood << " "
-						<< coords[0] << " " << coords[1] << " " << coords[2] << endl;
+				cout << "svc_damage: ARMOR " << armor << " BLOOD = " << blood
+						<< " " << coords[0] << " " << coords[1] << " "
+						<< coords[2] << endl;
 
 			}
 			break;
@@ -533,6 +809,7 @@ void Bot::parseServerMessage(Message *message) {
 			break;
 		}
 		default: {
+//			cout << "in default" << std::endl;
 			break;
 		}
 		}
@@ -541,7 +818,8 @@ void Bot::parseServerMessage(Message *message) {
 
 void Bot::sendIp(const string &realIp) {
 	char data[MAXLINE];
-	snprintf(data, sizeof(data), "\xff\xff\xff\xff" "ip 0 %s\n", realIp.c_str());
+	snprintf(data, sizeof(data), "\xff\xff\xff\xff" "ip 0 %s\n",
+			realIp.c_str());
 
 	Message s;
 	s.writeString(data);
@@ -579,44 +857,94 @@ void Bot::sendNew() {
 	s.writeChar(0);
 	s.writeChar(13);
 	s.writeChar(0);
-	s.writeChar(14);
+	s.writeChar(13);
 	outputQueue.push(s);
 }
 
-void Bot::join() {
-	cout << "Joining game!" << endl;
-	setInfo();
-	sleep(1);
-	requestPrespawn();
-	sleep(1);
-	requestSpawn();
-	sleep(1);
-	sendBegin();
+void Bot::updateState() {
+	std::cout << "CURRENT STATE " << currentState << endl;
+	switch (currentState) {
+	case Info:
+		requestStringCommand("soundlist 1 0");
+		currentState = Begin;
+//		requestStringCommand("setinfo pmodel 33168");
+//		requestStringCommand("setinfo emodel 6967");
+		//requestStringCommand("prespawn 1 6");
+//		requestStringCommand("spawn 1 0");
+//		requestStringCommand("spawn 1 27");
 
-	sleep(2);
-	cmds[frame].impulse = 1;
-	frame = (frame + 1) % UPDATE_BACKUP;
-	createCommand();
-	Message msg;
-	connection.recv(&msg, true);
+//		requestStringCommand("begin 1");
+//		requestStringCommand("set info \"chat\" \"\"");
+//		sendBegin();
+		break;
+	case Prespawn:
+		setInfo();
+		currentState = Begin;
+		break;
+	case Spawn:
+		break;
+	case Begin:
+//		setInfo();
+		currentState = Begin;
+		break;
+	case JoinTeam: {
+//		requestStringCommand("setinfo \"skin\" \"base\"", 10);
+//		requestStringCommand("setinfo \"topcolor\" \"0\"", 5);
+//		requestStringCommand("setinfo \"bottomcolor\" \"0\"", 5);
+//		requestMoveCommand();
+		Message msg;
+		sendImpulse(1);
+		connection.recv(&msg, true);
 
-	sleep(2);
-	cmds[frame].impulse = 3;
-	frame = (frame + 1) % UPDATE_BACKUP;
-	createCommand();
-	connection.recv(&msg, true);
+		sendImpulse(3);
+		connection.recv(&msg, true);
+//
+		requestStringCommand("setinfo \"topcolor\" \"13\"", 5);
+		requestStringCommand("setinfo \"bottomcolor\" \"13\"", 5);
+		requestStringCommand("setinfo \"team\" \"blue\"", 5);
+		requestStringCommand("setinfo \"skin\" \"tf_sold\"", 5);
+		requestStringCommand("setinfo \"chat\" \"\"", 2);
+		currentState = Done;
+		break;
+	}
+	case SelectClass:
+//		sendSelectClass();
 
-	sleep(2);
-	sendDisableChat();
-	connection.handshakeComplete();
-	cmds[frame].angles[1] = 90;
-	thinker = std::thread(&Bot::think, this);
+		currentState = Done;
+		sleep(2);
+		break;
+	case DisableChat:
+//		sendDisableChat();
+
+		break;
+	case Done:
+		if (connection.hasJoinedGame()) {
+			break;
+		}
+//
+//		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
+//			nullCommand(&cmds[frame]);
+//		}
+		currentState = None;
+		connection.handshakeComplete();
+		cmds[frame].angles[1] = 90;
+		thinker = std::thread(&Bot::think, this);
+		break;
+	case Connected:
+//		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
+//			nullCommand(&cmds[frame]);
+//		}
+		requestMoveCommand();
+//		sendDisableChat();
+		break;
+	}
 }
 
 void Bot::setInfo() {
 	Message s;
+	s.delay = 5;
 	s.writeByte(4);
-	s.writeString("setinfo pmodel 33168");
+	s.writeString("setinfo pmodel 13845");
 	s.writeByte(0);
 	s.writeByte(4);
 	s.writeString("setinfo emodel 6967");
@@ -633,16 +961,16 @@ void Bot::setInfo() {
 	s.writeByte(13);
 	s.writeByte(0);
 	s.writeByte(174);
-
-	connection.send(s);
-	s.clear();
-	connection.recv(&s, true);
+	outputQueue.push(s);
+//	connection.send(s);
+//	s.clear();
+//	connection.recv(&s, true);
 }
 
-void Bot::requestPrespawn() {
+void Bot::requestPrespawn(std::string prespawn) {
 	Message s;
 	s.writeByte(4);
-	s.writeString("prespawn 1 6");
+	s.writeString(prespawn.c_str());
 	s.writeByte(0);
 	s.writeByte(3);
 	s.writeChar('7');
@@ -653,49 +981,10 @@ void Bot::requestPrespawn() {
 	s.writeByte(174);
 	s.writeByte(0);
 	s.writeByte(13);
-
-	connection.send(s);
-	s.clear();
-	connection.recv(&s, true);
-}
-
-void Bot::requestSpawn() {
-	Message s;
-	s.writeByte(4);
-	s.writeString("spawn 1 0");
-	s.writeByte(0);
-	s.writeByte(3);
-	s.writeByte('r');
-	s.writeByte(2);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.writeByte(0);
-	s.writeByte(13);
-
-	connection.send(s);
-	s.clear();
-	connection.recv(&s, true);
-
-	s.clear();
-
-	s.writeByte(4);
-	s.writeString("spawn 1 27");
-	s.writeByte(0);
-	s.writeByte(3);
-	s.writeByte(175);
-	s.writeByte(2);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.writeByte(0);
-	s.writeByte(13);
-	connection.send(s);
-	s.clear();
-	connection.recv(&s, true);
-
+	outputQueue.push(s);
+//	connection.send(s);
+//	s.clear();
+//	connection.recv(&s, true);
 }
 
 void Bot::sendBegin() {
@@ -712,15 +1001,31 @@ void Bot::sendBegin() {
 	s.writeByte(13);
 	s.writeByte(0);
 	s.writeByte(13);
-	connection.send(s);
-	s.clear();
-	connection.recv(&s, true);
+	s.delay = 1;
+	outputQueue.push(s);
+//	handShakeState = None;
+	cout << "Sent begin!" << endl;
+}
+
+void Bot::sendImpulse(byte impulse) {
+//	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
+		cmds[frame].impulse = impulse;
+//	}
+
+	Message s;
+	s.delay = 5;
+	createCommand(&s);
+	outputQueue.push(s);
+	frame = (frame + 1) % UPDATE_BACKUP;
+
+//	connection.send(s);
+
 }
 
 void Bot::sendDisableChat() {
 	Message s;
 	s.writeByte(clc_stringcmd);
-	s.writeString("setinfo \"chat\" \"\"");
+	s.writeString("setinfo \"chat\" \"0\"");
 	s.writeByte(0);
 	s.writeByte(3);
 	s.writeByte(0);
@@ -730,65 +1035,68 @@ void Bot::sendDisableChat() {
 	s.writeByte(0);
 	s.writeByte(0);
 	s.writeByte(14);
+	s.delay = 0;
 	connection.send(s);
-	s.clear();
-	connection.recv(&s, true);
+	cout << "Sent disable chat!" << endl;
+//	handShakeState = Done;
 }
 
-void Bot::createCommand() {
+void Bot::createCommand(Message *s) {
 	Command *oldcmd, *cmd;
 
-	Message s;
-	s.writeByte(clc_move);
-	int crcIndex = s.getSize();
-	s.writeByte(0);
-	s.writeByte(0);
+//	nullCommand(&nullcmd);
+
+	s->writeByte(clc_move);
+	int crcIndex = s->getSize();
+	s->writeByte(0);
+	s->writeByte(0);
 
 	int i = (connection.getOutgoingSequence() - 2) & UPDATE_MASK;
 	cmd = &cmds[i];
 
-	s.writeDeltaUserCommand(&nullcmd, cmd);
+	s->writeDeltaUserCommand(&nullcmd, cmd);
 	oldcmd = cmd;
 
 	i = (connection.getOutgoingSequence() - 1) & UPDATE_MASK;
 	cmd = &cmds[i];
-	s.writeDeltaUserCommand(oldcmd, cmd);
+	s->writeDeltaUserCommand(oldcmd, cmd);
 	oldcmd = cmd;
 
 	i = (connection.getOutgoingSequence()) & UPDATE_MASK;
 	cmd = &cmds[i];
-	s.writeDeltaUserCommand(oldcmd, cmd);
+	s->writeDeltaUserCommand(oldcmd, cmd);
 
-	size_t size = s.getSize();
+	size_t size = s->getSize();
 	byte maxBuffer[size] = { 0 };
-	copy(s.getData().begin(), s.getData().end(), maxBuffer);
+	copy(s->getData().begin(), s->getData().end(), maxBuffer);
 
-	s.clear();
+	s->clear();
 
 	maxBuffer[crcIndex] = Utility::crcByte(maxBuffer + crcIndex + 1,
 			size - crcIndex - 1, connection.getOutgoingSequence());
 
 	for (int i = 0; i < size; i++) {
-		s.pushData(maxBuffer[i]);
+		s->pushData(maxBuffer[i]);
 	}
 
-	s.setCurrentSize(size);
+	s->setCurrentSize(size);
 
 	stringstream ss;
-	vector<byte> bytes = s.getData();
+	vector<byte> bytes = s->getData();
 	for (int i = 0; i < bytes.size(); i++) {
 		ss << bytes.at(i);
 	}
 
-	//outputQueue.push(s);
-	connection.send(s);
+//	outputQueue.push(s);
 }
 
 void Bot::think() {
 	static double extramsec = 0;
 
 	while (true) {
+
 		usleep(10000);
+
 		extramsec += 0.5 * 1000;
 		int ms = extramsec;
 
@@ -805,6 +1113,9 @@ void Bot::think() {
 		cmds[frame].upMove = 0;
 		cmds[frame].forwardMove = 0;
 
+		cmds[frame].msec = ms;
+
+
 		if (me != nullptr) {
 
 			extramsec += 0.01;
@@ -818,7 +1129,6 @@ void Bot::think() {
 			 } else {
 			 */
 //    }
-
 			/*
 			 if (mv.x < 0) {
 			 cmds[frame].sideMove = -500;
@@ -837,11 +1147,13 @@ void Bot::think() {
 				cout << getTime() << " STATE : PATROLLING" << endl;
 				patrol();
 			}
+
+			Message s;
+			createCommand(&s);
+			frame = (frame + 1) % UPDATE_BACKUP;
+			connection.send(s);
 		}
 
-		cmds[frame].msec = ms;
-		frame = (frame + 1) % UPDATE_BACKUP;
-		createCommand();
 	}
 }
 
@@ -856,10 +1168,13 @@ bool Bot::isTargetClose() {
 
 	glm::vec3 directionToTarget = glm::normalize(targetPosition - position);
 
+	std::cout << "Target position = " << targetPosition.x << " "
+			<< targetPosition.y << " " << targetPosition.z << endl;
+
 	float dist = glm::distance(targetPosition, position);
 	float deltaAngle = glm::dot(directionToTarget, facing);
 
-        cout << getTime() << " STATE : DIST = " << dist << endl;
+	cout << getTime() << " STATE : DIST = " << dist << endl;
 
 	if (dist <= maxDistance && deltaAngle >= 0.10) {
 		return true;
@@ -890,6 +1205,7 @@ void Bot::patrol() {
 void Bot::attackTarget() {
 	glm::vec3 targetPosition(players[targetSlot].coords[0],
 			players[targetSlot].coords[2], players[targetSlot].coords[1]);
+
 	glm::vec3 position(me->coords[0], me->coords[2], me->coords[1]);
 
 	glm::vec3 dir = targetPosition - position;
@@ -910,9 +1226,9 @@ void Bot::epoch() {
 	genomes.push_back(baby1);
 	brain.putWeights(baby1.getGenes());
 
-	//    Genome * weakest = &genomes.back();
-	//    weakest->setGenes(baby1.getGenes());
-	//
+//    Genome * weakest = &genomes.back();
+//    weakest->setGenes(baby1.getGenes());
+//
 
 	++generation;
 }
@@ -921,8 +1237,8 @@ Genome Bot::randomSelection() {
 	int index = rand() % genomes.size();
 	Genome selected = genomes.at(index);
 
-	cout << "ANN selected random genome with fitness of " << selected.getFitness()
-			<< endl;
+	cout << "ANN selected random genome with fitness of "
+			<< selected.getFitness() << endl;
 
 	return selected;
 
@@ -970,7 +1286,8 @@ Genome Bot::wheelSelection() {
 //}
 
 void Bot::crossoverAtSplits(const vector<double> &mom,
-		const vector<double> &dad, vector<double> &baby1, vector<double> &baby2) {
+		const vector<double> &dad, vector<double> &baby1,
+		vector<double> &baby2) {
 
 	if (Utility::randomFloat() > crossoverRate || mom == dad) {
 		baby1 = mom;
@@ -1020,3 +1337,143 @@ void Bot::createStartPopulation() {
 	brain.putWeights(genome.getGenes());
 
 }
+
+void Bot::requestStringCommand(string value) {
+	requestStringCommand(value, 2);
+}
+
+void Bot::requestStringCommand(string value, double delay) {
+	Message sendMsg;
+	sendMsg.delay = delay;
+	sendMsg.writeByte(clc_stringcmd);
+	sendMsg.writeString(value.c_str());
+	sendMsg.writeByte(0);
+//
+//	cmds[frame].impulse = 0;
+//	frame = (frame + 1) % UPDATE_BACKUP;
+//	sendJunk(&sendMsg);
+//	sendMsg.writeByte(0);
+//	sendMsg.writeByte(13);
+//	sendMsg.writeByte(0);
+//	sendMsg.writeByte(13);
+//	sendMsg.writeByte(0);
+//	sendMsg.writeByte(13);
+	outputQueue.push(sendMsg);
+//	connection.send(sendMsg);
+//	Message rcv;
+//	connection.recv(&rcv, true);
+}
+
+void Bot::requestMoveCommand() {
+	Message sendMsg;
+	sendMsg.delay = 5;
+	sendJunk(&sendMsg);
+	sendMsg.writeByte(0);
+	sendMsg.writeByte(13);
+	sendMsg.writeByte(0);
+	sendMsg.writeByte(13);
+	sendMsg.writeByte(0);
+	sendMsg.writeByte(13);
+	outputQueue.push(sendMsg);
+}
+
+void Bot::parseStatic(Message *msg) {
+	short bits = msg->readShort();
+
+	int i;
+	int morebits;
+	bits &= ~511;
+
+	if (bits & U_MOREBITS) {
+		i = msg->readByte();
+		bits |= i;
+	}
+
+	morebits = 0;
+
+	if (bits & U_MODEL) {
+		msg->readByte();
+	}
+
+	if (bits & U_FRAME) {
+		msg->readByte();
+	}
+
+	if (bits & U_COLORMAP) {
+		msg->readByte();
+	}
+
+	if (bits & U_SKIN) {
+		msg->readByte();
+	}
+
+	if (bits & U_EFFECTS) {
+		msg->readByte();
+	}
+
+	if (bits & U_ORIGIN1) {
+		msg->readFloat();
+	}
+
+	if (bits & U_ANGLE1) {
+		msg->readFloat();
+	}
+
+	if (bits & U_ORIGIN2) {
+		msg->readFloat();
+	}
+
+	if (bits & U_ANGLE2) {
+		msg->readFloat();
+	}
+
+	if (bits & U_ORIGIN3) {
+		msg->readFloat();
+	}
+
+	if (bits & U_ANGLE3) {
+		msg->readFloat();
+	}
+}
+
+void Bot::sendJunk(Message *s) {
+	Command *oldcmd, *cmd;
+
+	s->writeByte(clc_move);
+	int crcIndex = s->getSize();
+	s->writeByte(0);
+	s->writeByte(0);
+
+	int i = (connection.getOutgoingSequence() - 2) & UPDATE_MASK;
+	cmd = &cmds[i];
+
+//	s->writeDeltaUserCommand(&nullcmd, cmd);
+	oldcmd = cmd;
+	size_t size = s->getSize();
+	byte maxBuffer[size] = { 0 };
+	copy(s->getData().begin(), s->getData().end(), maxBuffer);
+
+	s->clear();
+
+	maxBuffer[crcIndex] = Utility::crcByte(maxBuffer + crcIndex + 1,
+			size - crcIndex - 1, connection.getOutgoingSequence());
+
+	for (int i = 0; i < size; i++) {
+		s->pushData(maxBuffer[i]);
+	}
+
+	s->setCurrentSize(size);
+}
+
+void Bot::nullCommand(Command *cmd) {
+	cmd->angles[0] = 0;
+	cmd->angles[1] = 0;
+	cmd->angles[2] = 0;
+	cmd->buttons = 0;
+	cmd->forwardMove = 0;
+	cmd->impulse = 0;
+	cmd->msec = 0;
+	cmd->sideMove = 0;
+	cmd->upMove = 0;
+}
+

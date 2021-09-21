@@ -16,6 +16,9 @@ Connection::Connection() {
     incomingReliableAck = 0;
     incomingReliableSequence = 0;
     incomingSequence = 0;
+    qport = 0;
+    sockfd = -1;
+    deltaSequence = 0;
 }
 
 Connection::Connection(const Connection& orig) {
@@ -56,19 +59,19 @@ void Connection::connect() {
     fcntl(sockfd, F_SETFL, O_NONBLOCK);
 }
 
-void Connection::sendConnectionless(Message msg) {
-    sendInner(&msg);
+int Connection::sendConnectionless(Message msg) {
+    return sendInner(&msg);
 }
 
-void Connection::send(Message msg) {
+int Connection::send(Message msg) {
     Message zend;
 
     writeHeader(&zend);
     msg.copyMessage(&zend);
-    sendInner(&zend);
+    return sendInner(&zend);
 }
 
-void Connection::sendInner(Message * msg) {
+int Connection::sendInner(Message * msg) {
 
    cout << "Sending[";
    for(int i = 0; i < msg->data.size(); i++) {
@@ -82,7 +85,7 @@ void Connection::sendInner(Message * msg) {
 
     cout << "] length[" << msg->data.size() << "]" <<endl;
 
-    sendto(sockfd, (const char*) &msg->data[0], msg->data.size(), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof (servaddr));
+    return sendto(sockfd, (const char*) &msg->data[0], msg->data.size(), MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof (servaddr));
 }
 
 bool Connection::recv(Message* msg, bool block) {
@@ -150,6 +153,7 @@ bool Connection::process(Message* msg) {
 
 Message::Message() {
     connectionless = false;
+    delay = 0;
     clear();
 }
 
@@ -376,8 +380,10 @@ void Message::writeDeltaUserCommand(Command *from, Command *cmd) {
     }
 
     if (bits & CM_IMPULSE) {
+    	cout << "Sending impulse '" << int(cmd->impulse) << "'" << endl;
         writeByte(cmd->impulse);
     }
     //msec
+    cmd->msec = 1;
     writeByte(cmd->msec);
 }

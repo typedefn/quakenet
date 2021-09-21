@@ -30,6 +30,8 @@
 #define A2C_CLIENT_COMMAND 'B'
 #define S2M_SHUTDOWN 'C'
 
+#define	U_MOREBITS	(1 << 15)
+
 #define DF_ORIGIN 1
 #define DF_ANGLES ( 1 << 3)
 #define DF_EFFECTS (1 << 6)
@@ -60,6 +62,29 @@
 #define CM_IMPULSE ( 1 << 6)
 #define CM_ANGLE2 ( 1 << 7)
 #define CM_WEAPONS ( 1 << 8)
+
+//==============================================
+
+// the first 16 bits of a packetentities update holds 9 bits of entity number and 7 bits of flags
+#define U_ORIGIN1       (1 << 9)
+#define U_ORIGIN2       (1 << 10)
+#define U_ORIGIN3       (1 << 11)
+#define U_ANGLE2        (1 << 12)
+#define U_FRAME         (1 << 13)
+#define U_REMOVE        (1 << 14)       // REMOVE this entity, don't add it
+#define U_MOREBITS      (1 << 15)
+
+// if MOREBITS is set, these additional flags are read in next
+#define U_ANGLE1        (1 << 0)
+#define U_ANGLE3        (1 << 1)
+#define U_MODEL         (1 << 2)
+#define U_COLORMAP      (1 << 3)
+#define U_SKIN          (1 << 4)
+#define U_EFFECTS       (1 << 5)
+#define U_SOLID         (1 << 6)        // the entity should be solid for prediction
+
+
+
 //==================
 // note that there are some defs.qc that mirror to these numbers
 // also related to svc_strings[] in cl_parse
@@ -139,13 +164,15 @@
 #define svc_serverinfo   52  // serverinfo
 #define svc_updatepl   53  // [byte] [byte]
 #define svc_nails2    54  // [byte] num [52 bits] nxyzpy 8 12 12 12 4 8
+#define svc_fte_spawnbaseline2  66
+#define svc_qizmovoice                  83
 
 #define PORT     27500
 #define MAXLINE 2048
 #define MAX_INFO_STRING 1024
 #define MAX_MSGLEN 1450
 #define PACKET_HEADER 8
-#define MAX_CLIENTS 16
+#define MAX_CLIENTS 32
 
 #define clc_move 3
 #define clc_stringcmd 4
