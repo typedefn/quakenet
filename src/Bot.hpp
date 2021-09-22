@@ -14,6 +14,7 @@
 #include "Genome.hpp"
 #include "NeuralNet.hpp"
 #include "Entity.hpp"
+#include "TsQueue.hpp"
 
 #define MAX_GENOMES 127
 enum HandShakeState {
@@ -51,6 +52,7 @@ private:
 	float elapsedTime;
 	float totalTime;
 	int newCount;
+	bool modelDone;
 
 	Command cmd;
 	Command nullcmd;
@@ -58,8 +60,8 @@ private:
 
 	Connection connection;
 
-	queue<Message> outputQueue;
-	queue<Message> inputQueue;
+	TsQueue<Message> outputQueue;
+	TsQueue<Message> inputQueue;
 
 	vector<Genome> genomes;
 	vector<glm::vec3> waypoints;
@@ -76,7 +78,7 @@ private:
 	std::thread thinker;
 	Message lastMessage;
  int delay;
-
+ double duration;
  void nullCommand(Command * cmd);
 public:
 

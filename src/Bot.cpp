@@ -26,13 +26,14 @@ Bot::Bot() {
 	srand(time(nullptr));
 	newCount = 0;
 	delay = 0;
+	duration = 0;
+	modelDone = false;
 }
 
 Bot::~Bot() {
 }
 
 void Bot::mainLoop() {
-	nullCommand(&nullcmd);
 	connection.connect();
 	getChallenge();
 
@@ -93,7 +94,7 @@ void Bot::mainLoop() {
 		}
 
 		Message message;
-		while (connection.recv(&message, false)) {
+		while (connection.recv(&message, true)) {
 			connection.process(&message);
 			parseServerMessage(&message);
 			lastReceived = getTime();
@@ -105,7 +106,6 @@ void Bot::mainLoop() {
 		}
 
 		timePassed = getTime();
-		usleep(10000);
 	}
 }
 
@@ -279,6 +279,10 @@ void Bot::parseServerMessage(Message *message) {
 			break;
 		}
 		case svc_modellist: {
+			if (modelDone) {
+				return;
+			}
+
 			int numModels, n;
 			char *str;
 			if (protover >= 26) {
@@ -304,7 +308,7 @@ void Bot::parseServerMessage(Message *message) {
 
 					cout << "MODEL LIST = " << n << "out of " << numModels
 							<< endl;
-					currentState = Prespawn;
+//					currentState = Begin;
 					return;
 				}
 
@@ -403,9 +407,10 @@ void Bot::parseServerMessage(Message *message) {
 			}
 
 			// Now request model list.
-
-			stringstream ss;
-			requestStringCommand("modellist 1 0");
+			if (!modelDone) {
+				stringstream ss;
+				requestStringCommand("modellist 1 0");
+			}
 			break;
 		}
 		case svc_intermission: {
@@ -559,7 +564,7 @@ void Bot::parseServerMessage(Message *message) {
 			}
 
 			//ask for sound list
-//			requestStringCommand("soundlist 1 0");
+			requestStringCommand("soundlist 1 0");
 			break;
 		}
 		case svc_stufftext: {
@@ -602,13 +607,12 @@ void Bot::parseServerMessage(Message *message) {
 			} else if (tokens.size() > 0 && tokens[0] == "fullserverinfo") {
 				currentState = Info;
 			} else if (tokens.size() == 1 && tokens[0] == "skins\n") {
-				if (currentState == Begin) {
-					sendBegin();
-					currentState = None;
-				}
+				currentState = Begin;
+				modelDone = true;
 //				currentState = JoinTeam;
-			} else if (tokens.size()
-					== 2 /* && (tokens[0] != "prespawn" || tokens[0] != "spawn") */) {
+			} else if (tokens.size() == 2 && tokens[0] == "exec"
+					&& tokens[1] == "1on1r.cfg\n") {
+//				currentState = SelectClass;
 //				stringstream ss;
 //				string t = tokens[1];
 //				t.pop_back();
@@ -640,9 +644,9 @@ void Bot::parseServerMessage(Message *message) {
 				me = &players[slot];
 				me->userId = userId;
 				me->slot = slot;
-				if (currentState == None) {
-					currentState = JoinTeam;
-				}
+//				if (currentState == None) {
+				currentState = JoinTeam;
+//				}
 			}
 			cout << "svc_updateuserinfo:(" << slot << "): " << value << endl;
 
@@ -865,8 +869,8 @@ void Bot::updateState() {
 	std::cout << "CURRENT STATE " << currentState << endl;
 	switch (currentState) {
 	case Info:
-		requestStringCommand("soundlist 1 0");
-		currentState = Begin;
+
+//		currentState = Begin;
 //		requestStringCommand("setinfo pmodel 33168");
 //		requestStringCommand("setinfo emodel 6967");
 		//requestStringCommand("prespawn 1 6");
@@ -876,42 +880,47 @@ void Bot::updateState() {
 //		requestStringCommand("begin 1");
 //		requestStringCommand("set info \"chat\" \"\"");
 //		sendBegin();
+		setInfo();
+//		requestStringCommand("soundlist 1 0");
+		currentState = None;
 		break;
 	case Prespawn:
-		setInfo();
-		currentState = Begin;
+//		setInfo();
+		currentState = None;
 		break;
 	case Spawn:
 		break;
 	case Begin:
 //		setInfo();
-		currentState = Begin;
+		requestStringCommand("begin 1");
+		currentState = None;
 		break;
 	case JoinTeam: {
-//		requestStringCommand("setinfo \"skin\" \"base\"", 10);
-//		requestStringCommand("setinfo \"topcolor\" \"0\"", 5);
-//		requestStringCommand("setinfo \"bottomcolor\" \"0\"", 5);
-//		requestMoveCommand();
-		Message msg;
-		sendImpulse(1);
-		connection.recv(&msg, true);
 
-		sendImpulse(3);
-		connection.recv(&msg, true);
-//
-		requestStringCommand("setinfo \"topcolor\" \"13\"", 5);
-		requestStringCommand("setinfo \"bottomcolor\" \"13\"", 5);
-		requestStringCommand("setinfo \"team\" \"blue\"", 5);
-		requestStringCommand("setinfo \"skin\" \"tf_sold\"", 5);
-		requestStringCommand("setinfo \"chat\" \"\"", 2);
-		currentState = Done;
+//		requestStringCommand("setinfo \"skin\" \"base\"", 0);
+//		requestStringCommand("setinfo \"topcolor\" \"0\"", 0);
+//		requestStringCommand("setinfo \"bottomcolor\" \"0\"", 0);
+//		requestMoveCommand();
+		sendImpulse(1);
+		currentState = SelectClass;
 		break;
 	}
 	case SelectClass:
-//		sendSelectClass();
-
+//
+//		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
+//			cmds[frame].impulse = 0;
+//		}
+//
+//		requestStringCommand("setinfo \"topcolor\" \"13\"", 0);
+//		requestStringCommand("setinfo \"bottomcolor\" \"13\"", 0);
+//		requestStringCommand("setinfo \"team\" \"blue\"", 0);
+//
+//
+		sendImpulse(3);
+		requestStringCommand("setinfo \"skin\" \"tf_sold\"", 0);
+		requestStringCommand("setinfo \"chat\" \"\"", 0);
+//
 		currentState = Done;
-		sleep(2);
 		break;
 	case DisableChat:
 //		sendDisableChat();
@@ -925,16 +934,19 @@ void Bot::updateState() {
 //		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
 //			nullCommand(&cmds[frame]);
 //		}
+
 		currentState = None;
 		connection.handshakeComplete();
 		cmds[frame].angles[1] = 90;
 		thinker = std::thread(&Bot::think, this);
 		break;
-	case Connected:
+	default:
 //		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
 //			nullCommand(&cmds[frame]);
+////		}
+//		if (modelDone) {
+//		requestMoveCommand();
 //		}
-		requestMoveCommand();
 //		sendDisableChat();
 		break;
 	}
@@ -942,7 +954,7 @@ void Bot::updateState() {
 
 void Bot::setInfo() {
 	Message s;
-	s.delay = 5;
+	s.delay = 6;
 	s.writeByte(4);
 	s.writeString("setinfo pmodel 13845");
 	s.writeByte(0);
@@ -1001,7 +1013,7 @@ void Bot::sendBegin() {
 	s.writeByte(13);
 	s.writeByte(0);
 	s.writeByte(13);
-	s.delay = 1;
+	s.delay = 0;
 	outputQueue.push(s);
 //	handShakeState = None;
 	cout << "Sent begin!" << endl;
@@ -1009,14 +1021,16 @@ void Bot::sendBegin() {
 
 void Bot::sendImpulse(byte impulse) {
 //	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
-		cmds[frame].impulse = impulse;
 //	}
+	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
+		cmds[frame].impulse = impulse;
+	}
 
 	Message s;
-	s.delay = 5;
+	s.delay = 0;
 	createCommand(&s);
+
 	outputQueue.push(s);
-	frame = (frame + 1) % UPDATE_BACKUP;
 
 //	connection.send(s);
 
@@ -1043,8 +1057,6 @@ void Bot::sendDisableChat() {
 
 void Bot::createCommand(Message *s) {
 	Command *oldcmd, *cmd;
-
-//	nullCommand(&nullcmd);
 
 	s->writeByte(clc_move);
 	int crcIndex = s->getSize();
@@ -1092,11 +1104,15 @@ void Bot::createCommand(Message *s) {
 
 void Bot::think() {
 	static double extramsec = 0;
+	cout << "Thinking!" << endl;
+
+	nullCommand(&nullcmd);
+	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
+		nullCommand(&cmds[frame]);
+	}
 
 	while (true) {
-
-		usleep(10000);
-
+		usleep(1000);
 		extramsec += 0.5 * 1000;
 		int ms = extramsec;
 
@@ -1106,15 +1122,17 @@ void Bot::think() {
 			ms = 100;
 		}
 
-		cmds[frame].angles[0] = 0;
-		cmds[frame].buttons = 0;
-		cmds[frame].sideMove = 0;
-		cmds[frame].impulse = 0;
-		cmds[frame].upMove = 0;
-		cmds[frame].forwardMove = 0;
+//		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
+//
+//			cmds[frame].angles[0] = 0;
+//			cmds[frame].buttons = 0;
+//			cmds[frame].sideMove = 0;
+//			cmds[frame].impulse = 0;
+//			cmds[frame].upMove = 0;
+//			cmds[frame].forwardMove = 0;
 
 		cmds[frame].msec = ms;
-
+//		}
 
 		if (me != nullptr) {
 
@@ -1136,23 +1154,21 @@ void Bot::think() {
 			 cmds[frame].sideMove = 500;
 			 }
 			 */
-			if (targetSlot == me->slot) {
-				continue;
-			}
 
-			if (isTargetClose()) {
-				cout << getTime() << " STATE : I SEE YOU" << endl;
+			if (isTargetClose() && targetSlot != me->slot) {
+//				cout << getTime() << " STATE : I SEE YOU" << endl;
 				attackTarget();
 			} else {
-				cout << getTime() << " STATE : PATROLLING" << endl;
+//				cout << getTime() << " STATE : PATROLLING" << endl;
 				patrol();
 			}
 
-			Message s;
-			createCommand(&s);
-			frame = (frame + 1) % UPDATE_BACKUP;
-			connection.send(s);
+//			connection.send(s);
 		}
+		Message s;
+		frame = (frame + 1) % UPDATE_BACKUP;
+		createCommand(&s);
+		outputQueue.push(s);
 
 	}
 }
@@ -1168,13 +1184,13 @@ bool Bot::isTargetClose() {
 
 	glm::vec3 directionToTarget = glm::normalize(targetPosition - position);
 
-	std::cout << "Target position = " << targetPosition.x << " "
-			<< targetPosition.y << " " << targetPosition.z << endl;
+//	std::cout << "Target position = " << targetPosition.x << " "
+//			<< targetPosition.y << " " << targetPosition.z << endl;
 
 	float dist = glm::distance(targetPosition, position);
 	float deltaAngle = glm::dot(directionToTarget, facing);
 
-	cout << getTime() << " STATE : DIST = " << dist << endl;
+//	cout << getTime() << " STATE : DIST = " << dist << endl;
 
 	if (dist <= maxDistance && deltaAngle >= 0.10) {
 		return true;
@@ -1185,7 +1201,7 @@ bool Bot::isTargetClose() {
 
 void Bot::patrol() {
 	static int wi = 0;
-	const float maxDistance = 100.0;
+	const float maxDistance = 20.0;
 	glm::vec3 position(me->coords[0], me->coords[2], me->coords[1]);
 	glm::vec3 targetPosition(waypoints.at(wi).x, me->coords[2],
 			waypoints.at(wi).z);
@@ -1199,7 +1215,8 @@ void Bot::patrol() {
 	glm::vec3 dir = targetPosition - position;
 
 	cmds[frame].angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
-	cmds[frame].forwardMove = 500;
+	cmds[frame].forwardMove = 1500;
+	std::cout << "Patrolling " << endl;
 }
 
 void Bot::attackTarget() {
@@ -1339,7 +1356,7 @@ void Bot::createStartPopulation() {
 }
 
 void Bot::requestStringCommand(string value) {
-	requestStringCommand(value, 2);
+	requestStringCommand(value, 1);
 }
 
 void Bot::requestStringCommand(string value, double delay) {
@@ -1348,6 +1365,13 @@ void Bot::requestStringCommand(string value, double delay) {
 	sendMsg.writeByte(clc_stringcmd);
 	sendMsg.writeString(value.c_str());
 	sendMsg.writeByte(0);
+	sendJunk(&sendMsg);
+	sendMsg.writeByte(0);
+	sendMsg.writeByte(13);
+	sendMsg.writeByte(0);
+	sendMsg.writeByte(13);
+	sendMsg.writeByte(0);
+	sendMsg.writeByte(13);
 //
 //	cmds[frame].impulse = 0;
 //	frame = (frame + 1) % UPDATE_BACKUP;
