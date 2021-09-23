@@ -93,7 +93,7 @@ public:
 	void requestPrespawn(std::string prespawn);
 	void requestSpawn();
 	void requestSpawn2();
-	void sendImpulse(byte impulse);
+	void sendImpulse(byte impulse, long delay);
 	void sendBegin();
 	void sendDisableChat();
 	void createCommand(Message * s);

@@ -42,7 +42,7 @@ void Connection::connect() {
 
 	qport = 48984;
 	srand((unsigned) time(nullptr));
-	qport &= rand();
+	qport = (rand() % 10000) + 48984;
 
 	struct sockaddr_in clientAddr;
 	memset(&clientAddr, 0, sizeof(struct sockaddr_in));

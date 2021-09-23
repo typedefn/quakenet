@@ -69,7 +69,7 @@ void Bot::mainLoop() {
 	double lastReceived = 0;
 	double timePassed = 0;
 	int counter = 0;
-
+	double updateDuration = 0;
 //	requestStringCommand("new");
 
 	while (1) {
@@ -100,10 +100,19 @@ void Bot::mainLoop() {
 			lastReceived = getTime();
 		}
 
-		if ((timePassed - lastReceived) > 1.5) {
+
+		if ((timePassed - updateDuration) > 1.5) {
 			updateState();
-			lastReceived = getTime();
+			updateDuration = getTime();
 		}
+
+//		double duration = (timePassed - lastReceived);
+//
+//		if (duration > 8) {
+//			requestMoveCommand();
+//			outputQueue.push(lastMessage);
+//			lastReceived = getTime();
+//		}
 
 		timePassed = getTime();
 	}
@@ -303,9 +312,9 @@ void Bot::parseServerMessage(Message *message) {
 
 				if ((n = message->readByte())) {
 					stringstream ss;
-					ss << "modellist 1 " << n;
-					requestStringCommand(ss.str());
-
+//					ss << "modellist 1 " << n;
+//					requestStringCommand(ss.str());
+//					currentState = Info;
 					cout << "MODEL LIST = " << n << "out of " << numModels
 							<< endl;
 //					currentState = Begin;
@@ -367,6 +376,10 @@ void Bot::parseServerMessage(Message *message) {
 			break;
 		}
 		case svc_soundlist: {
+			if (modelDone) {
+				return;
+			}
+
 			char *str;
 			int n;
 			byte numSounds;
@@ -389,9 +402,9 @@ void Bot::parseServerMessage(Message *message) {
 				n = message->readByte();
 
 				if (n) {
-					stringstream ss;
-					ss << "soundlist" << " " << 1 << " " << n;
-					requestStringCommand(ss.str());
+//					stringstream ss;
+//					ss << "soundlist" << " " << 1 << " " << n;
+//					requestStringCommand(ss.str());
 					return;
 				}
 			} else {
@@ -408,8 +421,8 @@ void Bot::parseServerMessage(Message *message) {
 
 			// Now request model list.
 			if (!modelDone) {
-				stringstream ss;
-				requestStringCommand("modellist 1 0");
+//				stringstream ss;
+//				requestStringCommand("modellist 1 0");
 			}
 			break;
 		}
@@ -564,7 +577,7 @@ void Bot::parseServerMessage(Message *message) {
 			}
 
 			//ask for sound list
-			requestStringCommand("soundlist 1 0");
+//			requestStringCommand("soundlist 1 0");
 			break;
 		}
 		case svc_stufftext: {
@@ -603,16 +616,20 @@ void Bot::parseServerMessage(Message *message) {
 						ss << " ";
 					}
 				}
+
+//				if (tokens[1] == "spawn") {
+//					currentState = Begin;
+//				}
+
 				requestStringCommand(ss.str());
 			} else if (tokens.size() > 0 && tokens[0] == "fullserverinfo") {
 				currentState = Info;
 			} else if (tokens.size() == 1 && tokens[0] == "skins\n") {
-				currentState = Begin;
 				modelDone = true;
-//				currentState = JoinTeam;
+				currentState = Begin;
 			} else if (tokens.size() == 2 && tokens[0] == "exec"
 					&& tokens[1] == "1on1r.cfg\n") {
-//				currentState = SelectClass;
+				currentState = JoinTeam;
 //				stringstream ss;
 //				string t = tokens[1];
 //				t.pop_back();
@@ -645,7 +662,7 @@ void Bot::parseServerMessage(Message *message) {
 				me->userId = userId;
 				me->slot = slot;
 //				if (currentState == None) {
-				currentState = JoinTeam;
+//				currentState = JoinTeam;
 //				}
 			}
 			cout << "svc_updateuserinfo:(" << slot << "): " << value << endl;
@@ -660,6 +677,10 @@ void Bot::parseServerMessage(Message *message) {
 			unsigned num = message->readByte();
 			if (num >= MAX_CLIENTS) {
 				break;
+			}
+
+			if (!connection.hasJoinedGame()) {
+				currentState = SelectClass;
 			}
 
 			if (me != nullptr && num != me->slot) {
@@ -866,6 +887,7 @@ void Bot::sendNew() {
 }
 
 void Bot::updateState() {
+
 	std::cout << "CURRENT STATE " << currentState << endl;
 	switch (currentState) {
 	case Info:
@@ -901,8 +923,12 @@ void Bot::updateState() {
 //		requestStringCommand("setinfo \"topcolor\" \"0\"", 0);
 //		requestStringCommand("setinfo \"bottomcolor\" \"0\"", 0);
 //		requestMoveCommand();
-		sendImpulse(1);
-		currentState = SelectClass;
+		sendImpulse(1, 0);
+		requestStringCommand("setinfo \"topcolor\" \"13\"", 0);
+		requestStringCommand("setinfo \"bottomcolor\" \"13\"", 0);
+		requestStringCommand("setinfo \"team\" \"blue\"", 0);
+
+		currentState = None;
 		break;
 	}
 	case SelectClass:
@@ -911,12 +937,11 @@ void Bot::updateState() {
 //			cmds[frame].impulse = 0;
 //		}
 //
-//		requestStringCommand("setinfo \"topcolor\" \"13\"", 0);
-//		requestStringCommand("setinfo \"bottomcolor\" \"13\"", 0);
-//		requestStringCommand("setinfo \"team\" \"blue\"", 0);
+
 //
 //
-		sendImpulse(3);
+
+		sendImpulse(3, 0);
 		requestStringCommand("setinfo \"skin\" \"tf_sold\"", 0);
 		requestStringCommand("setinfo \"chat\" \"\"", 0);
 //
@@ -954,7 +979,7 @@ void Bot::updateState() {
 
 void Bot::setInfo() {
 	Message s;
-	s.delay = 6;
+	s.delay = 1;
 	s.writeByte(4);
 	s.writeString("setinfo pmodel 13845");
 	s.writeByte(0);
@@ -1019,7 +1044,7 @@ void Bot::sendBegin() {
 	cout << "Sent begin!" << endl;
 }
 
-void Bot::sendImpulse(byte impulse) {
+void Bot::sendImpulse(byte impulse, long delay) {
 //	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
 //	}
 	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
@@ -1027,7 +1052,7 @@ void Bot::sendImpulse(byte impulse) {
 	}
 
 	Message s;
-	s.delay = 0;
+	s.delay = delay;
 	createCommand(&s);
 
 	outputQueue.push(s);
@@ -1124,13 +1149,12 @@ void Bot::think() {
 
 //		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
 //
-//			cmds[frame].angles[0] = 0;
-//			cmds[frame].buttons = 0;
-//			cmds[frame].sideMove = 0;
-//			cmds[frame].impulse = 0;
-//			cmds[frame].upMove = 0;
-//			cmds[frame].forwardMove = 0;
-
+		cmds[frame].angles[0] = 0;
+		cmds[frame].buttons = 0;
+		cmds[frame].sideMove = 0;
+//		cmds[frame].impulse = 0;
+		cmds[frame].upMove = 0;
+		cmds[frame].forwardMove = 0;
 		cmds[frame].msec = ms;
 //		}
 
@@ -1201,7 +1225,7 @@ bool Bot::isTargetClose() {
 
 void Bot::patrol() {
 	static int wi = 0;
-	const float maxDistance = 20.0;
+	const float maxDistance = 100.0;
 	glm::vec3 position(me->coords[0], me->coords[2], me->coords[1]);
 	glm::vec3 targetPosition(waypoints.at(wi).x, me->coords[2],
 			waypoints.at(wi).z);
@@ -1215,7 +1239,7 @@ void Bot::patrol() {
 	glm::vec3 dir = targetPosition - position;
 
 	cmds[frame].angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
-	cmds[frame].forwardMove = 1500;
+	cmds[frame].forwardMove = 500;
 	std::cout << "Patrolling " << endl;
 }
 
