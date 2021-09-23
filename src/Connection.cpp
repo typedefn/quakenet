@@ -85,7 +85,7 @@ int Connection::sendInner(Message *msg) {
 	cout << "] length[" << msg->data.size() << "]" << endl;
 
 	return sendto(sockfd, (const char*) &msg->data[0], msg->data.size(),
-			MSG_CONFIRM, (const struct sockaddr*) &servaddr, sizeof(servaddr));
+	MSG_CONFIRM, (const struct sockaddr*) &servaddr, sizeof(servaddr));
 }
 
 bool Connection::recv(Message *msg, bool block) {
@@ -118,10 +118,20 @@ bool Connection::recv(Message *msg, bool block) {
 			return false;
 		}
 		stringstream ss;
+		cout << "Recv: ";
+
 		for (int i = 0; i < n; i++) {
 			int c = buffer[i];
+			if (c >= 32 && c <= 126) {
+				cout << (char) c;
+			} else {
+				cout << "[" << (short) c << "]";
+			}
+
 			msg->writeByte(c);
 		}
+		cout << endl;
+
 		return true;
 	}
 

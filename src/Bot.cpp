@@ -28,6 +28,7 @@ Bot::Bot() {
 	delay = 0;
 	duration = 0;
 	modelDone = false;
+	ipRecv = false;
 }
 
 Bot::~Bot() {
@@ -94,25 +95,16 @@ void Bot::mainLoop() {
 		}
 
 		Message message;
-		while (connection.recv(&message, true)) {
+		while (connection.recv(&message, false)) {
 			connection.process(&message);
 			parseServerMessage(&message);
 			lastReceived = getTime();
 		}
 
-
 		if ((timePassed - updateDuration) > 1.5) {
 			updateState();
 			updateDuration = getTime();
 		}
-
-//		double duration = (timePassed - lastReceived);
-//
-//		if (duration > 8) {
-//			requestMoveCommand();
-//			outputQueue.push(lastMessage);
-//			lastReceived = getTime();
-//		}
 
 		timePassed = getTime();
 	}
@@ -145,7 +137,7 @@ void Bot::getChallenge() {
 
 	while (!established) {
 		msg.clear();
-		if (connection.recv(&msg, true)) {
+		if (connection.recv(&msg, false)) {
 			msg.beginRead();
 			msg.readLong();
 			c = msg.readByte();
@@ -158,7 +150,7 @@ void Bot::getChallenge() {
 
 				for (;;) {
 					c = msg.readLong();
-
+					cout << "Proto version " << c << endl;
 					if (msg.isBadRead()) {
 						break;
 					}
@@ -167,7 +159,7 @@ void Bot::getChallenge() {
 					msg.readLong();
 				}
 				strcpy(userInfo,
-						"\\team\\blue\\skin\\tf_sold\\rate\\25000\\name\\krupt_drv\\msg\\1\\noaim\\1\\*client\\dumbo\\topcolor\\13\\bottomcolor\\13\\pmodel\\13845\\emodel\\6967\\chat\\1\\*z_ext\\511");
+						"\\rate\\25000\\name\\krupt_drv\\msg\\1\\noaim\\1\\*client\\dumbo 1234\\*z_ext\\511");
 				snprintf(data, sizeof(data),
 						"\xff\xff\xff\xff" "connect %i %i %i \"%s\"\n",
 						PROTOCOL_VERSION, connection.getQport(), challenge,
@@ -184,6 +176,8 @@ void Bot::getChallenge() {
 				break;
 			}
 			case S2C_CONNECTION: {
+				requestStringCommand("new");
+				requestStringCommand("new", 2);
 				established = true;
 				break;
 			}
@@ -195,63 +189,17 @@ void Bot::getChallenge() {
 	}
 
 	msg.clear();
-
-	msg.writeChar(4);
-	msg.writeString("new");
-	msg.writeChar(0);
-	msg.writeChar(3);
-	msg.writeChar(202);
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar('!');
+	msg.writeByte(3);
+	msg.writeByte(18);
+	msg.writeByte(0);
+	msg.writeByte(0);
+	msg.writeByte(0);
+	msg.writeByte(0);
+	msg.writeByte('!');
+	msg.writeByte(0);
+	msg.writeByte(14);
 	outputQueue.push(msg);
 
-	msg.clear();
-	msg.writeChar(3);
-	msg.writeChar(18);
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar('!');
-	msg.writeChar(0);
-	msg.writeChar(14);
-	outputQueue.push(msg);
-
-	msg.clear();
-	connection.recv(&msg, true);
-
-	msg.clear();
-	msg.writeChar(3);
-	msg.writeChar(200);
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar('!');
-	msg.writeChar(0);
-	msg.writeChar(14);
-	msg.writeChar(0);
-	msg.writeChar(14);
-	outputQueue.push(msg);
-
-	msg.clear();
-	msg.writeChar(4);
-	msg.writeString("new");
-	msg.writeChar(0);
-	msg.writeChar(3);
-	msg.writeChar('K');
-	msg.writeChar(0);
-	msg.writeChar(0);
-	msg.writeChar(14);
-	msg.writeChar(0);
-	msg.writeChar(14);
-	msg.writeChar(0);
-	msg.writeChar(14);
-	outputQueue.push(msg);
-//	sendExtensions();
 }
 
 void Bot::parseServerMessage(Message *message) {
@@ -445,15 +393,6 @@ void Bot::parseServerMessage(Message *message) {
 		case svc_print: {
 			int id = message->readByte();
 			byte *dbyte = (byte*) message->readString();
-			cout << "Recv: ";
-			for (int i = 0; i < message->getSize(); i++) {
-				if (dbyte[i] >= 32 && dbyte[i] <= 126) {
-					cout << (char) dbyte[i];
-				} else {
-					cout << "[" << (int) dbyte[i] << "]";
-				}
-			}
-			cout << endl;
 
 //			if (currentState == Info) {
 //				currentState = Begin;
@@ -483,6 +422,11 @@ void Bot::parseServerMessage(Message *message) {
 
 			string key(message->readString());
 			string value(message->readString());
+
+			if (key == "skin" && value == "tf_sold") {
+				currentState = Done;
+				cout << "DONE!" << endl;
+			}
 
 			cout << "svc_setinfo(" << slot << "):" << key << "\\" << value
 					<< endl;
@@ -591,12 +535,11 @@ void Bot::parseServerMessage(Message *message) {
 
 			std::size_t pos = line.find("cmd");
 
-			cout << "svc_stufftext: [" << line << "]" << endl;
+//			cout << "svc_stufftext: [" << line << "]" << endl;
 			if (tokens.size() > 1 && tokens[0] == "packet"
 					&& tokens[2] == "\"ip") {
 				string realIpVal = tokens[4].substr(0, tokens[4].size() - 5);
 				sendIp(realIpVal);
-				requestStringCommand("new");
 			} else if (tokens.size() > 1 && tokens[1] == "pext\n") {
 				sendExtensions();
 			} else if (tokens.size() >= 2 && tokens[0] == "cmd") {
@@ -624,12 +567,13 @@ void Bot::parseServerMessage(Message *message) {
 				requestStringCommand(ss.str());
 			} else if (tokens.size() > 0 && tokens[0] == "fullserverinfo") {
 				currentState = Info;
+				ipRecv = true;
 			} else if (tokens.size() == 1 && tokens[0] == "skins\n") {
 				modelDone = true;
 				currentState = Begin;
 			} else if (tokens.size() == 2 && tokens[0] == "exec"
 					&& tokens[1] == "1on1r.cfg\n") {
-				currentState = JoinTeam;
+//				currentState = JoinTeam;
 //				stringstream ss;
 //				string t = tokens[1];
 //				t.pop_back();
@@ -661,9 +605,9 @@ void Bot::parseServerMessage(Message *message) {
 				me = &players[slot];
 				me->userId = userId;
 				me->slot = slot;
-//				if (currentState == None) {
-//				currentState = JoinTeam;
-//				}
+				if (currentState == None) {
+					currentState = JoinTeam;
+				}
 			}
 			cout << "svc_updateuserinfo:(" << slot << "): " << value << endl;
 
@@ -679,7 +623,7 @@ void Bot::parseServerMessage(Message *message) {
 				break;
 			}
 
-			if (!connection.hasJoinedGame()) {
+			if (!connection.hasJoinedGame() && currentState != Done) {
 				currentState = SelectClass;
 			}
 
@@ -891,74 +835,38 @@ void Bot::updateState() {
 	std::cout << "CURRENT STATE " << currentState << endl;
 	switch (currentState) {
 	case Info:
-
-//		currentState = Begin;
-//		requestStringCommand("setinfo pmodel 33168");
-//		requestStringCommand("setinfo emodel 6967");
-		//requestStringCommand("prespawn 1 6");
-//		requestStringCommand("spawn 1 0");
-//		requestStringCommand("spawn 1 27");
-
-//		requestStringCommand("begin 1");
-//		requestStringCommand("set info \"chat\" \"\"");
-//		sendBegin();
 		setInfo();
-//		requestStringCommand("soundlist 1 0");
 		currentState = None;
 		break;
 	case Prespawn:
-//		setInfo();
 		currentState = None;
 		break;
 	case Spawn:
 		break;
 	case Begin:
-//		setInfo();
-		requestStringCommand("begin 1");
+		requestStringCommand("begin 1", 5);
 		currentState = None;
 		break;
 	case JoinTeam: {
-
-//		requestStringCommand("setinfo \"skin\" \"base\"", 0);
-//		requestStringCommand("setinfo \"topcolor\" \"0\"", 0);
-//		requestStringCommand("setinfo \"bottomcolor\" \"0\"", 0);
-//		requestMoveCommand();
-		sendImpulse(1, 0);
-		requestStringCommand("setinfo \"topcolor\" \"13\"", 0);
-		requestStringCommand("setinfo \"bottomcolor\" \"13\"", 0);
-		requestStringCommand("setinfo \"team\" \"blue\"", 0);
-
+		sendImpulse(1, 15);
+		requestStringCommand("setinfo \"topcolor\" \"13\"", 3);
+		requestStringCommand("setinfo \"bottomcolor\" \"13\"", 3);
+		requestStringCommand("setinfo \"team\" \"blue\"", 3);
 		currentState = None;
 		break;
 	}
 	case SelectClass:
-//
-//		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
-//			cmds[frame].impulse = 0;
-//		}
-//
-
-//
-//
-
 		sendImpulse(3, 0);
 		requestStringCommand("setinfo \"skin\" \"tf_sold\"", 0);
 		requestStringCommand("setinfo \"chat\" \"\"", 0);
-//
-		currentState = Done;
 		break;
 	case DisableChat:
-//		sendDisableChat();
-
 		break;
 	case Done:
 		if (connection.hasJoinedGame()) {
+			currentState = None;
 			break;
 		}
-//
-//		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
-//			nullCommand(&cmds[frame]);
-//		}
 
 		currentState = None;
 		connection.handshakeComplete();
@@ -966,20 +874,16 @@ void Bot::updateState() {
 		thinker = std::thread(&Bot::think, this);
 		break;
 	default:
-//		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
-//			nullCommand(&cmds[frame]);
-////		}
-//		if (modelDone) {
-//		requestMoveCommand();
-//		}
-//		sendDisableChat();
+		if (!ipRecv) {
+			requestStringCommand("new", 0);
+		}
 		break;
 	}
 }
 
 void Bot::setInfo() {
 	Message s;
-	s.delay = 1;
+	s.delay = 7;
 	s.writeByte(4);
 	s.writeString("setinfo pmodel 13845");
 	s.writeByte(0);
@@ -1130,6 +1034,7 @@ void Bot::createCommand(Message *s) {
 void Bot::think() {
 	static double extramsec = 0;
 	cout << "Thinking!" << endl;
+	sleep(10);
 
 	nullCommand(&nullcmd);
 	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
@@ -1152,7 +1057,7 @@ void Bot::think() {
 		cmds[frame].angles[0] = 0;
 		cmds[frame].buttons = 0;
 		cmds[frame].sideMove = 0;
-//		cmds[frame].impulse = 0;
+		cmds[frame].impulse = 0;
 		cmds[frame].upMove = 0;
 		cmds[frame].forwardMove = 0;
 		cmds[frame].msec = ms;
@@ -1240,7 +1145,6 @@ void Bot::patrol() {
 
 	cmds[frame].angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
 	cmds[frame].forwardMove = 500;
-	std::cout << "Patrolling " << endl;
 }
 
 void Bot::attackTarget() {
@@ -1389,13 +1293,13 @@ void Bot::requestStringCommand(string value, double delay) {
 	sendMsg.writeByte(clc_stringcmd);
 	sendMsg.writeString(value.c_str());
 	sendMsg.writeByte(0);
-	sendJunk(&sendMsg);
-	sendMsg.writeByte(0);
-	sendMsg.writeByte(13);
-	sendMsg.writeByte(0);
-	sendMsg.writeByte(13);
-	sendMsg.writeByte(0);
-	sendMsg.writeByte(13);
+//	sendJunk(&sendMsg);
+//	sendMsg.writeByte(0);
+//	sendMsg.writeByte(13);
+//	sendMsg.writeByte(0);
+//	sendMsg.writeByte(13);
+//	sendMsg.writeByte(0);
+//	sendMsg.writeByte(13);
 //
 //	cmds[frame].impulse = 0;
 //	frame = (frame + 1) % UPDATE_BACKUP;

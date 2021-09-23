@@ -53,7 +53,7 @@ private:
 	float totalTime;
 	int newCount;
 	bool modelDone;
-
+	bool ipRecv;
 	Command cmd;
 	Command nullcmd;
 	Command cmds[UPDATE_BACKUP];
