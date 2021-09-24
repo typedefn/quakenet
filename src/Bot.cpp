@@ -38,6 +38,7 @@ Bot::~Bot() {
 void Bot::mainLoop() {
 	connection.connect();
 	getChallenge();
+	nullCommand(&nullcmd);
 
 	// Assuming this is a 1on1r.map so load 1on1r.bot
 	fstream fs;
@@ -962,16 +963,8 @@ void Bot::sendBegin() {
 }
 
 void Bot::sendImpulse(byte impulse, long delay) {
-//	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
-//	}
-	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
-		nullCommand(&cmds[frame]);
-	}
-
-	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
-		cmds[frame].impulse = impulse;
-	}
-
+	cmds[frame].impulse = impulse;
+	frame = (frame + 1) % UPDATE_BACKUP;
 	Message s;
 	s.delay = delay;
 	createCommand(&s);
@@ -1059,7 +1052,6 @@ void Bot::think() {
 //	requestStringCommand("setinfo \"chat\" \"\"", 0);
 
 	cout << "Thinking!" << endl;
-	sleep(2);
 
 //	nullCommand(&nullcmd);
 	for (int i = frame; i < UPDATE_BACKUP; i++) {
