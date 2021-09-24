@@ -73,15 +73,12 @@ void Bot::mainLoop() {
 	double timePassed = 0;
 	int counter = 0;
 	double updateDuration = 0;
-//	requestStringCommand("new");
 
 	while (1) {
 		int s = 0;
 		if (!outputQueue.empty()) {
 			Message message = outputQueue.front();
 			double deltaTime = (timePassed - lastSent);
-//			cout << "delta time = " << deltaTime << " msg.delay "
-//					<< message.delay << endl;
 			if (deltaTime >= message.delay) {
 				if (message.isConnectionless()) {
 					s = connection.sendConnectionless(message);
@@ -264,10 +261,8 @@ void Bot::parseServerMessage(Message *message) {
 					stringstream ss;
 //					ss << "modellist 1 " << n;
 //					requestStringCommand(ss.str());
-//					currentState = Info;
 					cout << "MODEL LIST = " << n << "out of " << numModels
 							<< endl;
-//					currentState = Begin;
 					return;
 				}
 
@@ -283,13 +278,6 @@ void Bot::parseServerMessage(Message *message) {
 			for (s = 0; s < 24; s++) {
 				message->readByte();
 			}
-//			sendBegin();
-//			requestStringCommand("setinfo \"skin\" \"base\"");
-//			sendJoinTeam();
-//			sendSelectClass();
-//			sendDisableChat();
-//			sendJoinTeam();
-//			sendSelectClass();
 			break;
 		}
 		case svc_spawnstaticsound: {
@@ -395,15 +383,6 @@ void Bot::parseServerMessage(Message *message) {
 		case svc_print: {
 			int id = message->readByte();
 			byte *dbyte = (byte*) message->readString();
-
-//			if (currentState == Info) {
-//				currentState = Begin;
-//			}
-
-//			if (p == " joined!\n") {
-//				currentState = JoinTeam;
-//			}
-
 			break;
 		}
 		case svc_centerprint: {
@@ -583,17 +562,6 @@ void Bot::parseServerMessage(Message *message) {
 				modelDone = true;
 			} else if (tokens.size() == 2 && tokens[0] == "exec"
 					&& tokens[1] == "1on1r.cfg\n") {
-//				currentState = JoinTeam;
-//				stringstream ss;
-//				string t = tokens[1];
-//				t.pop_back();
-//
-////				if (tokens[0] == "team" && t == "blue") {
-////					currentState = SelectClass;
-////				}
-//
-//				ss << tokens[0] << " " << t;
-//				requestStringCommand(ss.str());
 			}
 			break;
 		}
@@ -633,10 +601,6 @@ void Bot::parseServerMessage(Message *message) {
 				break;
 			}
 
-//			if (!connection.hasJoinedGame() && currentState != Done) {
-//				currentState = SelectClass;
-//			}
-
 			if (me != nullptr && num != me->slot) {
 				targetSlot = num;
 				cout << "TARGET = " << num << endl;
@@ -644,8 +608,6 @@ void Bot::parseServerMessage(Message *message) {
 
 			short flags = message->readShort();
 			players[num].flags = flags;
-
-			cout << "---start---" << endl;
 
 			for (int i = 0; i < 3; i++) {
 				float a = message->readFloat();
@@ -711,9 +673,6 @@ void Bot::parseServerMessage(Message *message) {
 			if (flags & PF_MODEL) {
 				cout << "PF_MODEL(" << num << ")" << "         =  "
 						<< message->readByte() << endl;
-				if (num == me->slot) {
-//					join();
-				}
 			}
 
 			if (flags & PF_SKINNUM) {
@@ -907,59 +866,7 @@ void Bot::setInfo() {
 	s.writeByte(4);
 	s.writeString("prespawn 1 0 -756178370");
 	s.writeByte(0);
-//	s.writeByte(3);
-//	s.writeChar('w');
-//	s.writeByte(2);
-//	s.writeByte(0);
-//	s.writeByte(13);
-//	s.writeByte(0);
-//	s.writeByte(13);
-//	s.writeByte(0);
-//	s.writeByte(174);
 	outputQueue.push(s);
-//	connection.send(s);
-//	s.clear();
-//	connection.recv(&s, true);
-}
-
-void Bot::requestPrespawn(std::string prespawn) {
-	Message s;
-	s.writeByte(4);
-	s.writeString(prespawn.c_str());
-	s.writeByte(0);
-	s.writeByte(3);
-	s.writeChar('7');
-	s.writeByte(2);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.writeByte(0);
-	s.writeByte(174);
-	s.writeByte(0);
-	s.writeByte(13);
-	outputQueue.push(s);
-//	connection.send(s);
-//	s.clear();
-//	connection.recv(&s, true);
-}
-
-void Bot::sendBegin() {
-	Message s;
-	s.writeByte(clc_stringcmd);
-	s.writeString("begin 1");
-	s.writeByte(0);
-	s.writeByte(3);
-	s.writeByte(177);
-	s.writeByte(3);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.delay = 0;
-	outputQueue.push(s);
-//	handShakeState = None;
-	cout << "Sent begin!" << endl;
 }
 
 void Bot::sendImpulse(byte impulse, long delay) {
@@ -968,30 +875,7 @@ void Bot::sendImpulse(byte impulse, long delay) {
 	Message s;
 	s.delay = delay;
 	createCommand(&s);
-
 	outputQueue.push(s);
-
-//	connection.send(s);
-
-}
-
-void Bot::sendDisableChat() {
-	Message s;
-	s.writeByte(clc_stringcmd);
-	s.writeString("setinfo \"chat\" \"0\"");
-	s.writeByte(0);
-	s.writeByte(3);
-	s.writeByte(0);
-	s.writeByte(0);
-	s.writeByte(0);
-	s.writeByte(0);
-	s.writeByte(0);
-	s.writeByte(0);
-	s.writeByte(14);
-	s.delay = 0;
-	connection.send(s);
-	cout << "Sent disable chat!" << endl;
-//	handShakeState = Done;
 }
 
 void Bot::createCommand(Message *s) {
@@ -1003,21 +887,17 @@ void Bot::createCommand(Message *s) {
 	s->writeByte(0);
 
 	int i = (connection.getOutgoingSequence() - 2) & UPDATE_MASK;
-
-	cout << "1 Outgoing seq " << i << endl;
 	cmd = &cmds[i];
 
 	s->writeDeltaUserCommand(&nullcmd, cmd);
 	oldcmd = cmd;
 
 	i = (connection.getOutgoingSequence() - 1) & UPDATE_MASK;
-	cout << "2 Outgoing seq " << i << endl;
 	cmd = &cmds[i];
 	s->writeDeltaUserCommand(oldcmd, cmd);
 	oldcmd = cmd;
 
 	i = (connection.getOutgoingSequence()) & UPDATE_MASK;
-	cout << "3 Outgoing seq " << i << endl;
 	cmd = &cmds[i];
 	s->writeDeltaUserCommand(oldcmd, cmd);
 
@@ -1042,18 +922,12 @@ void Bot::createCommand(Message *s) {
 		ss << bytes.at(i);
 	}
 
-//	outputQueue.push(s);
 }
 
 void Bot::think() {
 	static double extramsec = 0;
-//	sendImpulse(3, 0);
-//	requestStringCommand("setinfo \"skin\" \"tf_sold\"", 0);
-//	requestStringCommand("setinfo \"chat\" \"\"", 0);
-
 	cout << "Thinking!" << endl;
 
-//	nullCommand(&nullcmd);
 	for (int i = frame; i < UPDATE_BACKUP; i++) {
 		nullCommand(&cmds[i]);
 	}
@@ -1071,50 +945,24 @@ void Bot::think() {
 
 		nullCommand(&cmds[frame]);
 
-//		for (int i = 0; i < UPDATE_BACKUP; i++) {
-//
-
-//		}
-
 		if (me != nullptr) {
 
 			extramsec += 0.01;
 
 			ActionType at = (ActionType) (rand() % 5);
 
-			/*    if (at == ActionType::ATTACK && attack) {
-			 px = players[targetSlot].coords[0];
-			 pz = players[targetSlot].coords[1];
-			 py = players[targetSlot].coords[2];
-			 } else {
-			 */
-//    }
-			/*
-			 if (mv.x < 0) {
-			 cmds[frame].sideMove = -500;
-			 } else if (mv.x > 0) {
-			 cmds[frame].sideMove = 500;
-			 }
-			 */
-
 			if (isTargetClose() && targetSlot != me->slot) {
-//				cout << getTime() << " STATE : I SEE YOU" << endl;
 				attackTarget();
 			} else {
-//				cout << getTime() << " STATE : PATROLLING" << endl;
 				patrol();
 			}
-
-//			connection.send(s);
 		}
-//		for (int i = 0; i < UPDATE_BACKUP; i++) {
+
 		Message s;
 		cmds[frame].msec = ms;
 		frame = (frame + 1) % UPDATE_BACKUP;
 		createCommand(&s);
 		outputQueue.push(s);
-//		}
-
 	}
 }
 
@@ -1310,27 +1158,7 @@ void Bot::requestStringCommand(string value, double delay) {
 	sendMsg.writeByte(clc_stringcmd);
 	sendMsg.writeString(value.c_str());
 	sendMsg.writeByte(0);
-//	sendJunk(&sendMsg);
-//	sendMsg.writeByte(0);
-//	sendMsg.writeByte(13);
-//	sendMsg.writeByte(0);
-//	sendMsg.writeByte(13);
-//	sendMsg.writeByte(0);
-//	sendMsg.writeByte(13);
-//
-//	cmds[frame].impulse = 0;
-//	frame = (frame + 1) % UPDATE_BACKUP;
-//	sendJunk(&sendMsg);
-//	sendMsg.writeByte(0);
-//	sendMsg.writeByte(13);
-//	sendMsg.writeByte(0);
-//	sendMsg.writeByte(13);
-//	sendMsg.writeByte(0);
-//	sendMsg.writeByte(13);
 	outputQueue.push(sendMsg);
-//	connection.send(sendMsg);
-//	Message rcv;
-//	connection.recv(&rcv, true);
 }
 
 void Bot::requestMoveCommand() {
