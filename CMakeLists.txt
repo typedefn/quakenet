@@ -7,6 +7,7 @@ file(GLOB_RECURSE SOURCE_FILES
 file(GLOB_RECURSE HEADER_FILES
 	${CMAKE_SOURCE_DIR}/src/*.hpp)
 
+
 # Add .lib files
 #link_directories(${CMAKE_SOURCE_DIR}/lib)
 

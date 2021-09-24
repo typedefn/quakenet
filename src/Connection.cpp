@@ -371,18 +371,22 @@ void Message::writeDeltaUserCommand(Command *from, Command *cmd) {
 	}
 
 	if (bits & CM_FORWARD) {
+		cout << "Sending FORWARD '" << short(cmd->forwardMove) << "'" << endl;
 		writeShort(cmd->forwardMove);
 	}
 
 	if (bits & CM_SIDE) {
+		cout << "Sending SIDE '" << short(cmd->sideMove) << "'" << endl;
 		writeShort(cmd->sideMove);
 	}
 
 	if (bits & CM_UP) {
+		cout << "Sending UP '" << short(cmd->upMove) << "'" << endl;
 		writeShort(cmd->upMove);
 	}
 
 	if (bits & CM_BUTTONS) {
+		cout << "Sending buttons '" << int(cmd->buttons) << "'" << endl;
 		writeByte(cmd->buttons);
 	}
 

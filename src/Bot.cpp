@@ -29,6 +29,7 @@ Bot::Bot() {
 	duration = 0;
 	modelDone = false;
 	ipRecv = false;
+	beginSent = false;
 }
 
 Bot::~Bot() {
@@ -423,9 +424,12 @@ void Bot::parseServerMessage(Message *message) {
 			string key(message->readString());
 			string value(message->readString());
 
-			if (key == "skin" && value == "tf_sold") {
+			if (key == "team" && value == "blue") {
+				currentState = SelectClass;
+				cout << "JOINED TEAM" << endl;
+			} else if (key == "skin" && value == "tf_sold") {
 				currentState = Done;
-				cout << "DONE!" << endl;
+				cout << "SELECTED CLASS!" << endl;
 			}
 
 			cout << "svc_setinfo(" << slot << "):" << key << "\\" << value
@@ -560,9 +564,15 @@ void Bot::parseServerMessage(Message *message) {
 					}
 				}
 
-//				if (tokens[1] == "spawn") {
-//					currentState = Begin;
-//				}
+				if (tokens[1] == "spawn" && atoi(tokens[3].c_str()) > 0) {
+					currentState = Begin;
+
+					spawnCmd = ss.str();
+					cout << "SPAWN CMD = " << spawnCmd << endl;
+					if (beginSent && me == nullptr) {
+						break;
+					}
+				}
 
 				requestStringCommand(ss.str());
 			} else if (tokens.size() > 0 && tokens[0] == "fullserverinfo") {
@@ -570,7 +580,6 @@ void Bot::parseServerMessage(Message *message) {
 				ipRecv = true;
 			} else if (tokens.size() == 1 && tokens[0] == "skins\n") {
 				modelDone = true;
-				currentState = Begin;
 			} else if (tokens.size() == 2 && tokens[0] == "exec"
 					&& tokens[1] == "1on1r.cfg\n") {
 //				currentState = JoinTeam;
@@ -605,7 +614,7 @@ void Bot::parseServerMessage(Message *message) {
 				me = &players[slot];
 				me->userId = userId;
 				me->slot = slot;
-				if (currentState == None) {
+				if (currentState == None && beginSent) {
 					currentState = JoinTeam;
 				}
 			}
@@ -623,9 +632,9 @@ void Bot::parseServerMessage(Message *message) {
 				break;
 			}
 
-			if (!connection.hasJoinedGame() && currentState != Done) {
-				currentState = SelectClass;
-			}
+//			if (!connection.hasJoinedGame() && currentState != Done) {
+//				currentState = SelectClass;
+//			}
 
 			if (me != nullptr && num != me->slot) {
 				targetSlot = num;
@@ -831,10 +840,16 @@ void Bot::sendNew() {
 }
 
 void Bot::updateState() {
+	if (connection.hasJoinedGame()) {
+		currentState = None;
+		return;
+	}
 
 	std::cout << "CURRENT STATE " << currentState << endl;
 	switch (currentState) {
 	case Info:
+		requestStringCommand("unmuteall");
+		requestStringCommand("setinfo \"chat\" \"1\"");
 		setInfo();
 		currentState = None;
 		break;
@@ -844,15 +859,18 @@ void Bot::updateState() {
 	case Spawn:
 		break;
 	case Begin:
-		requestStringCommand("begin 1", 5);
+		if (!beginSent) {
+			requestStringCommand(spawnCmd, 2);
+			requestStringCommand("begin 1", 3);
+		}
+		beginSent = true;
 		currentState = None;
 		break;
 	case JoinTeam: {
-		sendImpulse(1, 15);
-		requestStringCommand("setinfo \"topcolor\" \"13\"", 3);
-		requestStringCommand("setinfo \"bottomcolor\" \"13\"", 3);
-		requestStringCommand("setinfo \"team\" \"blue\"", 3);
-		currentState = None;
+		sendImpulse(1, 0);
+		requestStringCommand("setinfo \"topcolor\" \"13\"", 0);
+		requestStringCommand("setinfo \"bottomcolor\" \"13\"", 0);
+		requestStringCommand("setinfo \"team\" \"blue\"", 0);
 		break;
 	}
 	case SelectClass:
@@ -863,11 +881,6 @@ void Bot::updateState() {
 	case DisableChat:
 		break;
 	case Done:
-		if (connection.hasJoinedGame()) {
-			currentState = None;
-			break;
-		}
-
 		currentState = None;
 		connection.handshakeComplete();
 		cmds[frame].angles[1] = 90;
@@ -893,15 +906,15 @@ void Bot::setInfo() {
 	s.writeByte(4);
 	s.writeString("prespawn 1 0 -756178370");
 	s.writeByte(0);
-	s.writeByte(3);
-	s.writeChar('w');
-	s.writeByte(2);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.writeByte(0);
-	s.writeByte(13);
-	s.writeByte(0);
-	s.writeByte(174);
+//	s.writeByte(3);
+//	s.writeChar('w');
+//	s.writeByte(2);
+//	s.writeByte(0);
+//	s.writeByte(13);
+//	s.writeByte(0);
+//	s.writeByte(13);
+//	s.writeByte(0);
+//	s.writeByte(174);
 	outputQueue.push(s);
 //	connection.send(s);
 //	s.clear();
@@ -952,6 +965,10 @@ void Bot::sendImpulse(byte impulse, long delay) {
 //	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
 //	}
 	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
+		nullCommand(&cmds[frame]);
+	}
+
+	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
 		cmds[frame].impulse = impulse;
 	}
 
@@ -993,17 +1010,21 @@ void Bot::createCommand(Message *s) {
 	s->writeByte(0);
 
 	int i = (connection.getOutgoingSequence() - 2) & UPDATE_MASK;
+
+	cout << "1 Outgoing seq " << i << endl;
 	cmd = &cmds[i];
 
 	s->writeDeltaUserCommand(&nullcmd, cmd);
 	oldcmd = cmd;
 
 	i = (connection.getOutgoingSequence() - 1) & UPDATE_MASK;
+	cout << "2 Outgoing seq " << i << endl;
 	cmd = &cmds[i];
 	s->writeDeltaUserCommand(oldcmd, cmd);
 	oldcmd = cmd;
 
 	i = (connection.getOutgoingSequence()) & UPDATE_MASK;
+	cout << "3 Outgoing seq " << i << endl;
 	cmd = &cmds[i];
 	s->writeDeltaUserCommand(oldcmd, cmd);
 
@@ -1033,16 +1054,20 @@ void Bot::createCommand(Message *s) {
 
 void Bot::think() {
 	static double extramsec = 0;
-	cout << "Thinking!" << endl;
-	sleep(10);
+//	sendImpulse(3, 0);
+//	requestStringCommand("setinfo \"skin\" \"tf_sold\"", 0);
+//	requestStringCommand("setinfo \"chat\" \"\"", 0);
 
-	nullCommand(&nullcmd);
-	for (frame = 0; frame < UPDATE_BACKUP; frame++) {
-		nullCommand(&cmds[frame]);
+	cout << "Thinking!" << endl;
+	sleep(2);
+
+//	nullCommand(&nullcmd);
+	for (int i = frame; i < UPDATE_BACKUP; i++) {
+		nullCommand(&cmds[i]);
 	}
 
 	while (true) {
-		usleep(1000);
+		usleep(10000);
 		extramsec += 0.5 * 1000;
 		int ms = extramsec;
 
@@ -1052,15 +1077,11 @@ void Bot::think() {
 			ms = 100;
 		}
 
-//		for (frame = 0; frame < UPDATE_BACKUP; frame++) {
+		nullCommand(&cmds[frame]);
+
+//		for (int i = 0; i < UPDATE_BACKUP; i++) {
 //
-		cmds[frame].angles[0] = 0;
-		cmds[frame].buttons = 0;
-		cmds[frame].sideMove = 0;
-		cmds[frame].impulse = 0;
-		cmds[frame].upMove = 0;
-		cmds[frame].forwardMove = 0;
-		cmds[frame].msec = ms;
+
 //		}
 
 		if (me != nullptr) {
@@ -1094,10 +1115,13 @@ void Bot::think() {
 
 //			connection.send(s);
 		}
+//		for (int i = 0; i < UPDATE_BACKUP; i++) {
 		Message s;
+		cmds[frame].msec = ms;
 		frame = (frame + 1) % UPDATE_BACKUP;
 		createCommand(&s);
 		outputQueue.push(s);
+//		}
 
 	}
 }
@@ -1145,6 +1169,7 @@ void Bot::patrol() {
 
 	cmds[frame].angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
 	cmds[frame].forwardMove = 500;
+
 }
 
 void Bot::attackTarget() {

@@ -54,6 +54,8 @@ private:
 	int newCount;
 	bool modelDone;
 	bool ipRecv;
+	bool beginSent;
+	string spawnCmd;
 	Command cmd;
 	Command nullcmd;
 	Command cmds[UPDATE_BACKUP];
