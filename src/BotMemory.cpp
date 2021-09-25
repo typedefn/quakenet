@@ -35,6 +35,11 @@ list<int> BotMemory::getListOfRecentlySensedEntities() const {
 void BotMemory::updateVision() {
 	for (auto &r : memoryMap) {
 		PlayerInfo *p = owner->getPlayerById(r.first);
+		PlayerInfo *m = owner->getMe();
+
+		if (m == p) {
+			continue;
+		}
 
 		if (!p->active) {
 			continue;

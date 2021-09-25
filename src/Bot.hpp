@@ -90,6 +90,10 @@ private:
  void nullCommand(Command * cmd);
 public:
 
+ 	BotMemory * getBotMemory() {
+ 		return botMemory.get();
+ 	}
+
 	double getTime();
 	void getChallenge();
 	void parseServerMessage(Message *message);
