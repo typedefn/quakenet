@@ -30,6 +30,22 @@ Bot::Bot() {
 	modelDone = false;
 	ipRecv = false;
 	beginSent = false;
+	this->botMemory = make_unique<BotMemory>(this, 4.0);
+
+	for(int i = 0; i < MAX_CLIENTS; i++) {
+		players[i].coords[0] = 0;
+		players[i].coords[1] = 0;
+		players[i].coords[2] = 0;
+		players[i].entertime = 0.0;
+		players[i].flags = 0;
+		players[i].frags = 0;
+		players[i].frame = 0;
+		strcpy(players[i].name, "");
+		players[i].ping = 0;
+		players[i].pl = 0;
+		players[i].slot = 0;
+		players[i].userId = 0;
+	}
 }
 
 Bot::~Bot() {
@@ -107,6 +123,14 @@ void Bot::mainLoop() {
 
 		timePassed = getTime();
 	}
+}
+
+PlayerInfo * Bot::getPlayerById(int id) {
+	return &players[id];
+}
+
+PlayerInfo * Bot::getMe() {
+	return me;
 }
 
 double Bot::getTime() {
@@ -608,6 +632,7 @@ void Bot::parseServerMessage(Message *message) {
 
 			short flags = message->readShort();
 			players[num].flags = flags;
+			players[num].active = true;
 
 			for (int i = 0; i < 3; i++) {
 				float a = message->readFloat();
@@ -956,6 +981,8 @@ void Bot::think() {
 			} else {
 				patrol();
 			}
+
+			botMemory->updateVision();
 		}
 
 		Message s;

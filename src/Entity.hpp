@@ -21,12 +21,7 @@ struct PlayerInfo {
   float coords[3];
   int frame;
   short flags;
-};
-
-class Entity {
-public:
-  Entity();
-  virtual ~Entity();
+  bool active;
 };
 
 #endif /* ENTITY_HPP_ */

@@ -15,6 +15,7 @@
 #include "NeuralNet.hpp"
 #include "Entity.hpp"
 #include "TsQueue.hpp"
+#include "BotMemory.hpp"
 
 #define MAX_GENOMES 127
 enum HandShakeState {
@@ -36,6 +37,9 @@ public:
 	virtual ~Bot();
 
 	void mainLoop();
+
+	PlayerInfo * getPlayerById(int id);
+	PlayerInfo * getMe();
 
 private:
 	HandShakeState currentState;
@@ -79,6 +83,8 @@ private:
 	vector<vector<double>> memory;
 	std::thread thinker;
 	Message lastMessage;
+	unique_ptr<BotMemory> botMemory;
+
  int delay;
  double duration;
  void nullCommand(Command * cmd);
