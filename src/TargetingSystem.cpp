@@ -37,11 +37,7 @@ void TargetingSystem::update() {
 			continue;
 		}
 
-		glm::vec3 targetPosition = glm::vec3(p->coords[0], p->coords[2], p->coords[1]);
-		glm::vec3 botPosition = glm::vec3(m->coords[0], m->coords[2], m->coords[1]);
-
-
-		float dist = glm::distance(targetPosition, botPosition);
+		float dist = glm::distance(p->position, m->position);
 
 		if (dist < closestDistanceSoFar) {
 			closestDistanceSoFar = dist;

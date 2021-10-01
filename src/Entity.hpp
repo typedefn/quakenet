@@ -22,6 +22,9 @@ struct PlayerInfo {
   int frame;
   short flags;
   bool active;
+  vec3 velocity;
+  vec3 position;
+  double time;
 };
 
 #endif /* ENTITY_HPP_ */

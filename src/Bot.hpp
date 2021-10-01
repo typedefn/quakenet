@@ -16,6 +16,11 @@
 #include "Entity.hpp"
 #include "TsQueue.hpp"
 #include "BotMemory.hpp"
+#include "TargetingSystem.hpp"
+#include "AttackGoal.hpp"
+#include "PatrolGoal.hpp"
+#include "Goal.hpp"
+
 
 #define MAX_GENOMES 127
 enum HandShakeState {
@@ -84,6 +89,8 @@ private:
 	std::thread thinker;
 	Message lastMessage;
 	unique_ptr<BotMemory> botMemory;
+	unique_ptr<TargetingSystem> targetingSystem;
+	vector<unique_ptr<Goal>> goals;
 
  int delay;
  double duration;
@@ -92,6 +99,18 @@ public:
 
  	BotMemory * getBotMemory() {
  		return botMemory.get();
+ 	}
+
+ 	TargetingSystem * getTargetingSystem() {
+ 	  return targetingSystem.get();
+ 	}
+
+ 	Command * getCommand() {
+ 	  return &cmds[frame];
+ 	}
+
+ 	vector<glm::vec3> getWaypoints() const {
+ 	  return waypoints;
  	}
 
 	double getTime();
