@@ -9,8 +9,9 @@
 #include "Gene.hpp"
 
 Bot::Bot() {
+  respawnTimer = 0;
   challenge = 0;
-  blood = 0;
+  blood = 100;
   armor = 0;
   frame = 0;
   targetSlot = -1;
@@ -32,8 +33,9 @@ Bot::Bot() {
   beginSent = false;
   this->botMemory = make_unique<BotMemory>(this, 4.0);
   this->targetingSystem = make_unique<TargetingSystem>(this);
-  goals.push_back(make_unique<AttackGoal>(this));
+
   goals.push_back(make_unique<PatrolGoal>(this));
+  goals.push_back(make_unique<SeekGoal>(this));
 
   for (int i = 0; i < MAX_CLIENTS; i++) {
     players[i].coords[0] = 0;
@@ -636,6 +638,7 @@ void Bot::parseServerMessage(Message *message) {
       }
 
       vec3 position = vec3(players[num].coords[0], players[num].coords[2], players[num].coords[1]);
+      players[num].velocity = (position - players[num].position) * (float)getTime();
       players[num].position = position;
       players[num].time = getTime();
 
@@ -694,7 +697,7 @@ void Bot::parseServerMessage(Message *message) {
         }
       }
 
-      players[num].velocity = velocity;
+//      players[num].velocity = velocity;
 
       if (flags & PF_MODEL) {
         cout << "PF_MODEL(" << num << ")" << "         =  " << message->readByte() << endl;
@@ -735,8 +738,8 @@ void Bot::parseServerMessage(Message *message) {
       break;
     }
     case svc_damage: {
-      armor = message->readByte();
-      blood = message->readByte();
+      int armor_ = message->readByte();
+      int blood_ = message->readByte();
       float coords[3];
       float dotP = 0;
 
@@ -748,7 +751,7 @@ void Bot::parseServerMessage(Message *message) {
       // For some reason when dotP is equal to 0, that means that the bot got hit by rocket, armor
       // is the amount taken off of armor and blood is the amount taken out of health.
       if (dotP <= 0) {
-
+        blood -= blood_;
         cout << "svc_damage: ARMOR " << armor << " BLOOD = " << blood << " " << coords[0] << " " << coords[1] << " " << coords[2] << endl;
 
       }
@@ -949,8 +952,10 @@ void Bot::think() {
     nullCommand(&cmds[i]);
   }
 
+  sleep(1);
+
   while (true) {
-    usleep(10000);
+    usleep(5000);
     extramsec += 0.5 * 1000;
     int ms = extramsec;
 
@@ -987,6 +992,16 @@ void Bot::think() {
         goal->update();
       }
 
+    }
+
+    if(blood <= 0) {
+      cout << "IM DEAD!" << endl;
+      cmds[frame].buttons = 1;
+      respawnTimer += getTime();
+      if (respawnTimer > 3) {
+        blood = 100;
+        respawnTimer = 0;
+      }
     }
 
     Message s;

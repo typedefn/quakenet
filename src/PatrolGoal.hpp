@@ -21,7 +21,7 @@ public:
   double calculateDesirability();
 
 private:
-  Bot *owner;
+
 };
 
 #endif /* PATROLGOAL_HPP_ */

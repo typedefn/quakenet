@@ -39,7 +39,7 @@ void TargetingSystem::update() {
 
 		float dist = glm::distance(p->position, m->position);
 
-		if (dist < closestDistanceSoFar) {
+		if (dist < closestDistanceSoFar && dist <= 800) {
 			closestDistanceSoFar = dist;
 			currentTarget = id;
 		}

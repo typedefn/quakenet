@@ -37,8 +37,6 @@ private:
 	double angleToTarget;
 
 public:
-
-	float getAngleToTarget() { return angleToTarget; }
 	bool isWithinFov(int id);
 	vec3 getLastSensedPosition(int id);
 	double getTimeEntityHasBeenVisible(int id) const;

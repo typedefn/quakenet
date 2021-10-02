@@ -72,10 +72,9 @@ void BotMemory::updateVision() {
       mem.lastVisible = owner->getTime();
       mem.withinFov = true;
       mem.timeOutOfFov = 0;
-      cout << "MEM: withing FOV" << endl;
     } else {
+      mem.timeOutOfFov += (owner->getTime() - r.lastVisible);
       mem.lastTimeOutOfFov = owner->getTime();
-      mem.timeOutOfFov += owner->getTime();
       mem.withinFov = false;
       mem.timeOpponentVisible = 0;
     }
@@ -95,22 +94,15 @@ bool BotMemory::isWithinFov(int id) {
   glm::vec3 targetPosition = getLastSensedPosition(id);
   glm::vec3 facing = glm::normalize(glm::cross(glm::normalize(me->position), glm::vec3(0, 1, 0)));
   glm::vec3 directionToTarget = glm::normalize(targetPosition - me->position);
-  angleToTarget = 90 + (atan2(-directionToTarget.x, directionToTarget.z) * (180.0 / PI));
 
   float deltaAngle = glm::dot(directionToTarget, facing);
-
-  return deltaAngle >= 0.10;
+  cout << "deltaAngle = " << deltaAngle << endl;
+  return deltaAngle >= 0.01;
 }
 
 vec3 BotMemory::getLastSensedPosition(int id) {
-
-  if (memoryMap.find(id) == memoryMap.end()) {
-    PlayerInfo *p = owner->getPlayerById(id);
-    return p->position;
-  }
-
-  MemoryRecord record = memoryMap[id];
-  return record.lastSensedPosition;
+  PlayerInfo *p = owner->getPlayerById(id);
+  return p->position;
 }
 
 double BotMemory::getTimeEntityHasBeenVisible(int id) const {

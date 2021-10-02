@@ -19,8 +19,6 @@ public:
   void update();
   double calculateDesirability();
 
-private:
-  Bot * owner;
 };
 
 #endif /* ATTACKGOAL_HPP_ */
