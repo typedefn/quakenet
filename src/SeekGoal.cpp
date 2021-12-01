@@ -52,7 +52,7 @@ double SeekGoal::calculateDesirability() {
     desire = owner->getBlood() / 100.0f;
   }
 
-  cout << "Seek goal desire " << desire << endl;
+  LOG << "Seek goal desire " << desire;
 
   return desire;
 }

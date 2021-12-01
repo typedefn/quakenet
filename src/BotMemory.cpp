@@ -45,6 +45,7 @@ void BotMemory::updateVision() {
   if ( rec == memoryMap.end()) {
     MemoryRecord mem;
     mem.lastVisible = owner->getTime();
+    mem.lastSensedPosition = owner->getPlayerById(owner->getTargetId())->position;
     memoryMap[owner->getTargetId()] = mem;
   }
 
@@ -92,7 +93,6 @@ bool BotMemory::isWithinFov(int id) {
   glm::vec3 directionToTarget = glm::normalize(targetPosition - me->position);
 
   float deltaAngle = glm::dot(directionToTarget, facing);
-  cout << "deltaAngle = " << deltaAngle << endl;
   return deltaAngle >= 0.01;
 }
 

@@ -54,7 +54,7 @@ double PatrolGoal::calculateDesirability() {
     desire = memory->getTimeEntityHasBeenOutOfFov(id);
   }
 
-  cout << "Patrol goal desire " << desire << endl;
+  LOG << "Patrol goal desire " << desire;
 
   return desire;
 }
