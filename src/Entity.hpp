@@ -11,7 +11,6 @@
 #include "Common.hpp"
 
 struct PlayerInfo {
-  long userId;
   char name[32];
   int frags;
   int ping;

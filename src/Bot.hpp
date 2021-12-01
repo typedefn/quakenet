@@ -16,6 +16,8 @@
 #include "Entity.hpp"
 #include "TsQueue.hpp"
 #include "BotMemory.hpp"
+#include "TargetingSystem.hpp"
+#include "Logger.hpp"
 
 #define MAX_GENOMES 127
 enum HandShakeState {
@@ -43,6 +45,7 @@ public:
 
 private:
 	HandShakeState currentState;
+	HandShakeState previousState;
 
 	PlayerInfo *me;
 	PlayerInfo players[MAX_CLIENTS];
@@ -52,13 +55,10 @@ private:
 	int challenge;
 	int frame;
 	int targetSlot;
-	bool targetSelected;
 	float elapsedTime;
 	float totalTime;
 	int newCount;
-	bool modelDone;
 	bool ipRecv;
-	bool beginSent;
 	string spawnCmd;
 	Command cmd;
 	Command nullcmd;
@@ -69,21 +69,13 @@ private:
 	TsQueue<Message> outputQueue;
 	TsQueue<Message> inputQueue;
 
-	vector<Genome> genomes;
 	vector<glm::vec3> waypoints;
-
-	int generation;
-	float crossoverRate;
-	float mutationRate;
-//  Genome * workingGenome;
-	int genomeIndex;
-
-	NeuralNet brain;
 
 	vector<vector<double>> memory;
 	std::thread thinker;
 	Message lastMessage;
 	unique_ptr<BotMemory> botMemory;
+	unique_ptr<TargetingSystem> targetingSystem;
 
  int delay;
  double duration;
@@ -92,6 +84,14 @@ public:
 
  	BotMemory * getBotMemory() {
  		return botMemory.get();
+ 	}
+
+ 	int getTargetId() {
+ 	  if (targetSlot > MAX_CLIENTS) {
+ 	    LOG << "getTargetId error " << targetSlot << " > " << MAX_CLIENTS;
+ 	    return 0;
+ 	  }
+ 	  return targetSlot;
  	}
 
 	double getTime();
@@ -110,15 +110,6 @@ public:
 	void sendDisableChat();
 	void createCommand(Message * s);
 	void think();
-	void createStartPopulation();
-	void epoch();
-	Genome wheelSelection();
-	Genome randomSelection();
-	//  void crossover(const vector<Gene> & mom, const vector<Gene> &dad, vector<Gene> &baby1, vector<Gene> &baby2);
-	void crossoverAtSplits(const vector<double> &mom, const vector<double> &dad,
-			vector<double> &baby1, vector<double> &baby2);
-	void mutate(vector<double> &genes);
-
 	void patrol();
 	bool isTargetClose();
 	void attackTarget();

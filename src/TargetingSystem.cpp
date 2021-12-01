@@ -29,9 +29,13 @@ void TargetingSystem::update() {
 		PlayerInfo *p = owner->getPlayerById(id);
 		PlayerInfo *m = owner->getMe();
 
+		LOG << " id = " << id;
+
 		if (p == m) {
 			continue;
 		}
+
+		LOG << " p->active = " << p->active;
 
 		if (!p->active) {
 			continue;
@@ -40,8 +44,9 @@ void TargetingSystem::update() {
 		glm::vec3 targetPosition = glm::vec3(p->coords[0], p->coords[2], p->coords[1]);
 		glm::vec3 botPosition = glm::vec3(m->coords[0], m->coords[2], m->coords[1]);
 
-
 		float dist = glm::distance(targetPosition, botPosition);
+
+		LOG << " dist = " << dist;
 
 		if (dist < closestDistanceSoFar) {
 			closestDistanceSoFar = dist;

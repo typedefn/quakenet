@@ -33,6 +33,17 @@ list<int> BotMemory::getListOfRecentlySensedEntities() const {
 }
 
 void BotMemory::updateVision() {
+
+
+  auto rec = memoryMap.find(owner->getTargetId());
+
+  if ( rec == memoryMap.end()) {
+    MemoryRecord mem;
+    mem.lastVisible = owner->getTime();
+    memoryMap[owner->getTargetId()] = mem;
+  }
+
+
 	for (auto &r : memoryMap) {
 		PlayerInfo *p = owner->getPlayerById(r.first);
 		PlayerInfo *m = owner->getMe();

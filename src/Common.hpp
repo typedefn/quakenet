@@ -37,6 +37,7 @@
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
 
+#include "Logger.hpp"
 
 using namespace std;
 using namespace glm;

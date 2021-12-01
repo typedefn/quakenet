@@ -51,7 +51,7 @@ void Connection::connect() {
 	clientAddr.sin_addr.s_addr = INADDR_ANY;
 
 	if (bind(sockfd, (struct sockaddr*) &clientAddr, sizeof(clientAddr)) < 0) {
-		cout << "failed to bind to port " << qport << endl;
+		LOG << "failed to bind to port " << qport;
 	}
 
 	socklen_t len;
@@ -72,17 +72,17 @@ int Connection::send(Message msg) {
 
 int Connection::sendInner(Message *msg) {
 
-	cout << "Sending[";
+//	cout << "Sending[";
 	for (int i = 0; i < msg->data.size(); i++) {
 		int c = msg->data.data()[i];
 		if (c < 32 || c > 127) {
-			printf("[%i]", c);
+//			printf("[%i]", c);
 		} else {
-			printf("%c", c);
+//			printf("%c", c);
 		}
 	}
 
-	cout << "] length[" << msg->data.size() << "]" << endl;
+//	cout << "] length[" << msg->data.size() << "]" << endl;
 
 	return sendto(sockfd, (const char*) &msg->data[0], msg->data.size(),
 	MSG_CONFIRM, (const struct sockaddr*) &servaddr, sizeof(servaddr));
@@ -118,19 +118,19 @@ bool Connection::recv(Message *msg, bool block) {
 			return false;
 		}
 		stringstream ss;
-		cout << "Recv: ";
+//		cout << "Recv: ";
 
 		for (int i = 0; i < n; i++) {
 			int c = buffer[i];
 			if (c >= 32 && c <= 126) {
-				cout << (char) c;
+//				cout << (char) c;
 			} else {
-				cout << "[" << (short) c << "]";
+//				cout << "[" << (short) c << "]";
 			}
 
 			msg->writeByte(c);
 		}
-		cout << endl;
+//		cout << endl;
 
 		return true;
 	}
@@ -371,27 +371,22 @@ void Message::writeDeltaUserCommand(Command *from, Command *cmd) {
 	}
 
 	if (bits & CM_FORWARD) {
-		cout << "Sending FORWARD '" << short(cmd->forwardMove) << "'" << endl;
 		writeShort(cmd->forwardMove);
 	}
 
 	if (bits & CM_SIDE) {
-		cout << "Sending SIDE '" << short(cmd->sideMove) << "'" << endl;
 		writeShort(cmd->sideMove);
 	}
 
 	if (bits & CM_UP) {
-		cout << "Sending UP '" << short(cmd->upMove) << "'" << endl;
 		writeShort(cmd->upMove);
 	}
 
 	if (bits & CM_BUTTONS) {
-		cout << "Sending buttons '" << int(cmd->buttons) << "'" << endl;
 		writeByte(cmd->buttons);
 	}
 
 	if (bits & CM_IMPULSE) {
-		cout << "Sending impulse '" << int(cmd->impulse) << "'" << endl;
 		writeByte(cmd->impulse);
 	}
 
