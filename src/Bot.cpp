@@ -26,6 +26,9 @@ Bot::Bot() {
   this->botMemory = make_unique<BotMemory>(this, 4.0);
   this->targetingSystem = make_unique<TargetingSystem>(this);
 
+  goals.push_back(make_unique<PatrolGoal>(this));
+  goals.push_back(make_unique<SeekGoal>(this));
+
   for (int i = 0; i < MAX_CLIENTS; i++) {
     players[i].coords[0] = 0;
     players[i].coords[1] = 0;
@@ -95,7 +98,6 @@ void Bot::mainLoop() {
           s = connection.send(message);
         }
         lastSent = getTime();
-//        LOG << " sent delayed msg of size " << s;
         lastMessage.clear();
         message.copyMessage(&lastMessage);
         outputQueue.pop();
@@ -233,6 +235,7 @@ void Bot::parseServerMessage(Message *message) {
       message->incReadCount();
       break;
     }
+
 
     switch (cmd) {
     case svc_nop: {
@@ -529,14 +532,13 @@ void Bot::parseServerMessage(Message *message) {
 
         if (tokens[1] == "spawn" && atoi(tokens[3].c_str()) > 0) {
           currentState = Begin;
+          spawnCmd = ss.str();
         }
 
         requestStringCommand(ss.str());
       } else if (tokens.size() > 0 && tokens[0] == "fullserverinfo") {
         currentState = Info;
         ipRecv = true;
-      } else if (tokens.size() == 1 && tokens[0] == "skins\n") {
-
       } else if (tokens.size() == 2 && tokens[0] == "exec" && tokens[1] == "1on1r.cfg\n") {
       }
       break;
@@ -545,7 +547,6 @@ void Bot::parseServerMessage(Message *message) {
       int slot = message->readByte();
       if (slot >= MAX_CLIENTS) {
         LOG << "slot(" << slot << ") is greater than " << MAX_CLIENTS;
-
         break;
       }
 
@@ -561,7 +562,6 @@ void Bot::parseServerMessage(Message *message) {
           currentState = JoinTeam;
         }
       }
-
       break;
     }
     case svc_cdtrack: {
@@ -577,7 +577,6 @@ void Bot::parseServerMessage(Message *message) {
       if (me != nullptr && num != me->slot) {
         targetSlot = num;
         players[targetSlot].slot = num;
-//        LOG << "TARGET SLOT = " << num;
       }
 
       short flags = message->readShort();
@@ -588,6 +587,11 @@ void Bot::parseServerMessage(Message *message) {
         float a = message->readFloat();
         players[num].coords[i] = a;
       }
+
+      vec3 position = vec3(players[num].coords[0], players[num].coords[2], players[num].coords[1]);
+      players[num].velocity = (position - players[num].position) * (float)getTime();
+      players[num].position = position;
+      players[num].time = getTime();
 
       byte frame = message->readByte();
 
@@ -686,9 +690,7 @@ void Bot::parseServerMessage(Message *message) {
       // For some reason when dotP is equal to 0, that means that the bot got hit by rocket, armor
       // is the amount taken off of armor and blood is the amount taken out of health.
       if (dotP <= 0) {
-
         LOG << "svc_damage: ARMOR " << armor << " BLOOD = " << blood << " " << coords[0] << " " << coords[1] << " " << coords[2];
-
       }
       break;
     }
@@ -764,7 +766,6 @@ void Bot::updateState() {
   if (previousState != currentState) {
     LOG << "State changed to " << currentState << " from " << previousState;
   }
-
   switch (currentState) {
   case Info:
     requestStringCommand("unmuteall");
@@ -911,12 +912,32 @@ void Bot::think() {
       botMemory->updateVision();
       targetingSystem->update();
 
-      if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov()) {
-        attackTarget();
-      } else {
-        patrol();
+      Goal *goal = nullptr;
+      double maxScore = -1.0;
+
+      for (const auto &g : goals) {
+        double desire = g->calculateDesirability();
+
+        if (desire > maxScore) {
+          maxScore = desire;
+          goal = g.get();
+        }
       }
 
+      if (goal != nullptr) {
+        goal->update();
+      }
+
+    }
+
+    if(blood <= 0) {
+      LOG << "IM DEAD!";
+      cmds[frame].buttons = 1;
+      respawnTimer += getTime();
+      if (respawnTimer > 3) {
+        blood = 100;
+        respawnTimer = 0;
+      }
     }
 
     Message s;
@@ -929,13 +950,10 @@ void Bot::think() {
 
 bool Bot::isTargetClose() {
   const float maxDistance = 420.0;
-
   glm::vec3 targetPosition(players[targetSlot].coords[0], players[targetSlot].coords[2], players[targetSlot].coords[1]);
   glm::vec3 position(me->coords[0], me->coords[2], me->coords[1]);
   glm::vec3 facing = glm::normalize(glm::cross(glm::normalize(position), glm::vec3(0, 1, 0)));
-
   glm::vec3 directionToTarget = glm::normalize(targetPosition - position);
-
   float dist = glm::distance(targetPosition, position);
   float deltaAngle = glm::dot(directionToTarget, facing);
 
@@ -967,7 +985,6 @@ void Bot::patrol() {
 
 void Bot::attackTarget() {
   glm::vec3 targetPosition(players[targetSlot].coords[0], players[targetSlot].coords[2], players[targetSlot].coords[1]);
-
   glm::vec3 position(me->coords[0], me->coords[2], me->coords[1]);
 
   glm::vec3 dir = targetPosition - position;

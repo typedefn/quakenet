@@ -18,106 +18,118 @@
 #include "BotMemory.hpp"
 #include "TargetingSystem.hpp"
 #include "Logger.hpp"
+#include "AttackGoal.hpp"
+#include "PatrolGoal.hpp"
+#include "Goal.hpp"
+#include "SeekGoal.hpp"
 
 #define MAX_GENOMES 127
 enum HandShakeState {
-	None,
-	Info,
-	Prespawn,
-	Spawn,
-	Begin,
-	JoinTeam,
-	SelectClass,
-	DisableChat,
-	Waiting,
-	Connected,
-	Done,
+  None, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done,
 };
 class Bot {
 public:
-	Bot();
-	virtual ~Bot();
+  Bot();
+  virtual ~Bot();
 
-	void mainLoop();
+  void mainLoop();
 
-	PlayerInfo * getPlayerById(int id);
-	PlayerInfo * getMe();
+  PlayerInfo* getPlayerById(int id);
+  PlayerInfo* getMe();
 
 private:
-	HandShakeState currentState;
-	HandShakeState previousState;
+  HandShakeState currentState;
+  HandShakeState previousState;
 
-	PlayerInfo *me;
-	PlayerInfo players[MAX_CLIENTS];
+  PlayerInfo *me;
+  PlayerInfo players[MAX_CLIENTS];
 
-	float blood;
-	float armor;
-	int challenge;
-	int frame;
-	int targetSlot;
-	float elapsedTime;
-	float totalTime;
-	int newCount;
-	bool ipRecv;
-	string spawnCmd;
-	Command cmd;
-	Command nullcmd;
-	Command cmds[UPDATE_BACKUP];
+  float blood;
+  float armor;
+  int challenge;
+  int frame;
+  int targetSlot;
+  float elapsedTime;
+  float totalTime;
+  int newCount;
+  bool ipRecv;
+  string spawnCmd;
+  Command cmd;
+  Command nullcmd;
+  Command cmds[UPDATE_BACKUP];
 
-	Connection connection;
+  Connection connection;
 
-	TsQueue<Message> outputQueue;
-	TsQueue<Message> inputQueue;
+  TsQueue<Message> outputQueue;
+  TsQueue<Message> inputQueue;
 
-	vector<glm::vec3> waypoints;
+  vector<glm::vec3> waypoints;
 
-	vector<vector<double>> memory;
-	std::thread thinker;
-	Message lastMessage;
-	unique_ptr<BotMemory> botMemory;
-	unique_ptr<TargetingSystem> targetingSystem;
+  vector<vector<double>> memory;
+  std::thread thinker;
+  Message lastMessage;
+  unique_ptr<BotMemory> botMemory;
+  unique_ptr<TargetingSystem> targetingSystem;
 
- int delay;
- double duration;
- void nullCommand(Command * cmd);
+  double respawnTimer;
+
+  vector<unique_ptr<Goal>> goals;
+  int delay;
+  double duration;
+  void nullCommand(Command *cmd);
 public:
 
- 	BotMemory * getBotMemory() {
- 		return botMemory.get();
- 	}
+  BotMemory* getBotMemory() {
+    return botMemory.get();
+  }
 
- 	int getTargetId() {
- 	  if (targetSlot > MAX_CLIENTS) {
- 	    LOG << "getTargetId error " << targetSlot << " > " << MAX_CLIENTS;
- 	    return 0;
- 	  }
- 	  return targetSlot;
- 	}
+  int getTargetId() {
+    if (targetSlot > MAX_CLIENTS) {
+      LOG << "getTargetId error " << targetSlot << " > " << MAX_CLIENTS;
+      return 0;
+    }
+    return targetSlot;
+  }
 
-	double getTime();
-	void getChallenge();
-	void parseServerMessage(Message *message);
-	void sendIp(const string &realIp);
-	void sendExtensions();
-	void sendNew();
-	void updateState();
-	void setInfo();
-	void requestPrespawn(std::string prespawn);
-	void requestSpawn();
-	void requestSpawn2();
-	void sendImpulse(byte impulse, long delay);
-	void sendBegin();
-	void sendDisableChat();
-	void createCommand(Message * s);
-	void think();
-	void patrol();
-	bool isTargetClose();
-	void attackTarget();
-	void requestStringCommand(string value);
-	void requestStringCommand(string value, double delay);
-	void parseStatic(Message * msg);
-	void sendJunk(Message * s);
-	void requestMoveCommand();
+  double getTime();
+  void getChallenge();
+  void parseServerMessage(Message *message);
+  void sendIp(const string &realIp);
+  void sendExtensions();
+  void sendNew();
+  void updateState();
+  void setInfo();
+  void requestPrespawn(std::string prespawn);
+  void requestSpawn();
+  void requestSpawn2();
+  void sendImpulse(byte impulse, long delay);
+  void sendBegin();
+  void sendDisableChat();
+  void createCommand(Message *s);
+  void think();
+  void patrol();
+  bool isTargetClose();
+  void attackTarget();
+  void requestStringCommand(string value);
+  void requestStringCommand(string value, double delay);
+  void parseStatic(Message *msg);
+  void sendJunk(Message *s);
+  void requestMoveCommand();
+
+  TargetingSystem* getTargetingSystem() {
+    return targetingSystem.get();
+  }
+
+  Command* getCommand() {
+    return &cmds[frame];
+  }
+
+  vector<glm::vec3> getWaypoints() const {
+    return waypoints;
+  }
+  int getBlood() {
+    return blood;
+  }
 };
 
 #endif /* BOT_HPP */

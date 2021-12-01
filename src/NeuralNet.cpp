@@ -59,7 +59,7 @@ vector<double> NeuralNet::update(vector<double>& inputs) {
 
         for (int j = 0; j < layers.at(i).getNumNeurons(); ++j) {
             double netInput = 0;
-            weightCount = 0;
+
             int numInputs = layers.at(i).getNeurons().at(j).getNumberOfInputs();
 
             if (numInputs != inputs.size()) {
@@ -68,7 +68,7 @@ vector<double> NeuralNet::update(vector<double>& inputs) {
             }
             
             for (int k = 0; k < numInputs - 1; ++k) {
-                netInput += layers.at(i).getNeurons().at(j).getWeights().at(k) * inputs[weightCount++];
+                netInput += layers.at(i).getNeurons().at(j).getWeights().at(k) * inputs.at(k);
             }
 
             netInput += layers.at(i).getNeurons().at(j).getWeights().at(numInputs - 1) * bias;
@@ -94,13 +94,10 @@ vector<double> NeuralNet::getWeights() {
         for (int j = 0; j < layers.at(i).getNumNeurons(); ++j) {
             int numInputs = layers.at(i).getNeurons().at(j).getNumberOfInputs();
 
-            for (int k = 0; k < numInputs - 1; ++k) {
+            for (int k = 0; k < numInputs; ++k) {
                 double w = layers.at(i).getNeurons().at(j).getWeights().at(k);
                 weights.push_back(w);
             }
-
-            double w = layers.at(i).getNeurons().at(j).getWeights().at(numInputs - 1);
-            weights.push_back(w);
         }
     }
     return weights;
@@ -118,10 +115,6 @@ void NeuralNet::putWeights(const vector<double>& weights) {
     for (int i = 0; i < hiddenLayers + 1; i++) {
         for (int j = 0; j < layers.at(i).getNumNeurons(); ++j) {
             int numInputs = layers.at(i).getNeurons().at(j).getNumberOfInputs();
-            
-            if (numberOfTotalWeights != sz) {
-                cout << "ANN error numberOfTotalWeights != sz " << endl;
-            }
             
             layers.at(i).getNeurons().at(j).getWeights().clear();
             for (int k = 0; k < numInputs; ++k) {
