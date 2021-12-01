@@ -72,17 +72,23 @@ int Connection::send(Message msg) {
 
 int Connection::sendInner(Message *msg) {
 
-//	cout << "Sending[";
+  stringstream ss;
+
+	ss << "Sending[";
 	for (int i = 0; i < msg->data.size(); i++) {
 		int c = msg->data.data()[i];
 		if (c < 32 || c > 127) {
-//			printf("[%i]", c);
+      ss << "[" << (int)c << "]";
 		} else {
-//			printf("%c", c);
+			ss << (char)c;
 		}
 	}
 
-//	cout << "] length[" << msg->data.size() << "]" << endl;
+	ss << "] length[" << msg->data.size() << "]";
+
+#ifdef LOG_SEND_TRAFFIC
+	LOG << ss.str();
+#endif
 
 	return sendto(sockfd, (const char*) &msg->data[0], msg->data.size(),
 	MSG_CONFIRM, (const struct sockaddr*) &servaddr, sizeof(servaddr));
@@ -112,25 +118,28 @@ bool Connection::recv(Message *msg, bool block) {
 		buffer[n] = '\0';
 
 		if (n >= MAXLINE) {
-			cout << "buffer is huge truncating " << n << endl;
+			LOG << "buffer is huge truncating " << n;
 			n = MAXLINE - 1;
 		} else if (n < 0) {
 			return false;
 		}
 		stringstream ss;
-//		cout << "Recv: ";
+		ss << "Recv: ";
 
 		for (int i = 0; i < n; i++) {
 			int c = buffer[i];
 			if (c >= 32 && c <= 126) {
-//				cout << (char) c;
+				ss << (char) c;
 			} else {
-//				cout << "[" << (short) c << "]";
+				ss << "[" << (short) c << "]";
 			}
 
 			msg->writeByte(c);
 		}
-//		cout << endl;
+
+#ifdef LOG_RECV_TRAFFIC
+		LOG << ss.str();
+#endif
 
 		return true;
 	}

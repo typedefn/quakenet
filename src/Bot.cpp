@@ -725,11 +725,12 @@ void Bot::sendIp(const string &realIp) {
 void Bot::sendExtensions() {
   LOG << "Sending extension";
   Message s;
+  s.delay = 2.0f;
   s.writeChar(4);
   s.writeString("pext 0x58455446 0x2140f000 0x32455446 0x2 0x3144564d 0x1");
   s.writeChar(0);
   s.writeChar(3);
-  s.writeChar('Z');
+  s.writeChar(134);
   s.writeChar(0);
   s.writeChar(0);
   s.writeChar(14);
@@ -805,7 +806,7 @@ void Bot::updateState() {
     break;
   default:
     if (!ipRecv) {
-      requestStringCommand("new", 0);
+//      requestStringCommand("new", 0);
     }
     break;
   }

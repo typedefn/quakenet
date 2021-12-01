@@ -24,6 +24,7 @@
 #include "SeekGoal.hpp"
 
 #define MAX_GENOMES 127
+
 enum HandShakeState {
   None, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done,
 };
