@@ -21,5 +21,5 @@ This is a quake bot that connects via UDP to a QW server, still under developmen
 
 # How to run
 
-./quakenet <ip> <port>
+./quakenet IP port
   
