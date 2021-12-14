@@ -22,4 +22,8 @@ This is a quake bot that connects via UDP to a QW server, still under developmen
 # How to run
 
 ./quakenet IP port
+
+For example, to connect to a server hosted on 127.0.0.1 on port 27500 you will execute:
+
+./quakenet 127.0.0.1 27500
   
