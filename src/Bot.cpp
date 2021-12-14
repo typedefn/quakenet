@@ -707,7 +707,6 @@ void Bot::parseServerMessage(Message *message) {
       break;
     }
     default: {
-//			cout << "in default" << std::endl;
       break;
     }
     }
@@ -806,9 +805,6 @@ void Bot::updateState() {
     thinker = std::thread(&Bot::think, this);
     break;
   default:
-    if (!ipRecv) {
-//      requestStringCommand("new", 0);
-    }
     break;
   }
 
@@ -950,52 +946,6 @@ void Bot::think() {
   }
 }
 
-bool Bot::isTargetClose() {
-  const float maxDistance = 420.0;
-  glm::vec3 targetPosition(players[targetSlot].coords[0], players[targetSlot].coords[2], players[targetSlot].coords[1]);
-  glm::vec3 position(me->coords[0], me->coords[2], me->coords[1]);
-  glm::vec3 facing = glm::normalize(glm::cross(glm::normalize(position), glm::vec3(0, 1, 0)));
-  glm::vec3 directionToTarget = glm::normalize(targetPosition - position);
-  float dist = glm::distance(targetPosition, position);
-  float deltaAngle = glm::dot(directionToTarget, facing);
-
-  if (dist <= maxDistance && deltaAngle >= 0.10) {
-    return true;
-  }
-
-  return false;
-}
-
-void Bot::patrol() {
-  static int wi = 0;
-  const float maxDistance = 100.0;
-  glm::vec3 position(me->coords[0], me->coords[2], me->coords[1]);
-  glm::vec3 targetPosition(waypoints.at(wi).x, me->coords[2], waypoints.at(wi).z);
-
-  float dist = glm::distance(targetPosition, position);
-
-  if (dist <= maxDistance) {
-    wi = (wi + 1) % waypoints.size();
-  }
-
-  glm::vec3 dir = targetPosition - position;
-
-  cmds[frame].angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
-  cmds[frame].forwardMove = 500;
-
-}
-
-void Bot::attackTarget() {
-  glm::vec3 targetPosition(players[targetSlot].coords[0], players[targetSlot].coords[2], players[targetSlot].coords[1]);
-  glm::vec3 position(me->coords[0], me->coords[2], me->coords[1]);
-
-  glm::vec3 dir = targetPosition - position;
-
-  cmds[frame].angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
-  cmds[frame].forwardMove = 0;
-  cmds[frame].buttons = 1;
-}
-
 void Bot::requestStringCommand(string value) {
   requestStringCommand(value, 1);
 }
@@ -1006,19 +956,6 @@ void Bot::requestStringCommand(string value, double delay) {
   sendMsg.writeByte(clc_stringcmd);
   sendMsg.writeString(value.c_str());
   sendMsg.writeByte(0);
-  outputQueue.push(sendMsg);
-}
-
-void Bot::requestMoveCommand() {
-  Message sendMsg;
-  sendMsg.delay = 5;
-  sendJunk(&sendMsg);
-  sendMsg.writeByte(0);
-  sendMsg.writeByte(13);
-  sendMsg.writeByte(0);
-  sendMsg.writeByte(13);
-  sendMsg.writeByte(0);
-  sendMsg.writeByte(13);
   outputQueue.push(sendMsg);
 }
 
@@ -1079,33 +1016,6 @@ void Bot::parseStatic(Message *msg) {
   if (bits & U_ANGLE3) {
     msg->readFloat();
   }
-}
-
-void Bot::sendJunk(Message *s) {
-  Command *oldcmd, *cmd;
-
-  s->writeByte(clc_move);
-  int crcIndex = s->getSize();
-  s->writeByte(0);
-  s->writeByte(0);
-
-  int i = (connection.getOutgoingSequence() - 2) & UPDATE_MASK;
-  cmd = &cmds[i];
-
-  oldcmd = cmd;
-  size_t size = s->getSize();
-  byte maxBuffer[size] = { 0 };
-  copy(s->getData().begin(), s->getData().end(), maxBuffer);
-
-  s->clear();
-
-  maxBuffer[crcIndex] = Utility::crcByte(maxBuffer + crcIndex + 1, size - crcIndex - 1, connection.getOutgoingSequence());
-
-  for (int i = 0; i < size; i++) {
-    s->pushData(maxBuffer[i]);
-  }
-
-  s->setCurrentSize(size);
 }
 
 void Bot::nullCommand(Command *cmd) {

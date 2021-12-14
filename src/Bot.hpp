@@ -109,14 +109,9 @@ public:
   void sendDisableChat();
   void createCommand(Message *s);
   void think();
-  void patrol();
-  bool isTargetClose();
-  void attackTarget();
   void requestStringCommand(string value);
   void requestStringCommand(string value, double delay);
   void parseStatic(Message *msg);
-  void sendJunk(Message *s);
-  void requestMoveCommand();
 
   TargetingSystem* getTargetingSystem() {
     return targetingSystem.get();
