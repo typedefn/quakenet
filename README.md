@@ -5,7 +5,7 @@ This is a quake bot that connects via UDP to a QW server, still under developmen
 
 # Areas that need work
 
-- Probably need to implement configuration parser, so that the bot config is not hardcoded, such as bot name, team, etc...
+- Probably need to implement configuration parser, so that the bot config is not hardcoded, such as bot name, team selection, class selection, etc...
 - Needs better AI system.
 - Sometimes the handshake fails, and the bot just sits as a ghosted client on the server until it is timed out.
 - Currently only compiles in Linux, maybe make a Windoze port of it.
