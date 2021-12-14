@@ -1,7 +1,7 @@
 # quakenet
 QuakeWorld Bot Client
 
-This is a quake bot that connects via UDP to a QW server, still under development and needs lots of work.
+This is a quake bot that connects via UDP to a QW or a TF QW server, still under development and needs lots of work.
 
 # Areas that need work
 
