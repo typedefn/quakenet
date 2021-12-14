@@ -1,7 +1,7 @@
 # quakenet
 QuakeWorld Bot Client
 
-This is a quake bot that connects via UDP to a QW server, still under development and needs lots of work.
+This is a quake bot that connects via UDP to a QW or a TF QW server, still under development and needs lots of work.
 
 # Areas that need work
 
@@ -18,3 +18,12 @@ This is a quake bot that connects via UDP to a QW server, still under developmen
 - cd ./build
 - cmake ../
 - make
+
+# How to run
+
+./quakenet IP port
+
+For example, to connect to a server hosted on 127.0.0.1 on port 27500 you will execute:
+
+./quakenet 127.0.0.1 27500
+  
