@@ -55,7 +55,11 @@ private:
   float totalTime;
   int newCount;
   bool ipRecv;
+  long spawnCount;
   string spawnCmd;
+  string mapName;
+  string gameDir;
+
   Command cmd;
   Command nullcmd;
   Command cmds[UPDATE_BACKUP];
@@ -72,6 +76,8 @@ private:
   Message lastMessage;
   unique_ptr<BotMemory> botMemory;
   unique_ptr<TargetingSystem> targetingSystem;
+
+  map<string, string> mapChecksums;
 
   double respawnTimer;
 

@@ -271,5 +271,6 @@ struct Command {
 };
 
 
+
 #endif /* PROTOCOL_HPP */
 

@@ -43,6 +43,15 @@ Bot::Bot(char **argv) {
     players[i].slot = 0;
   }
   this->argv = argv;
+
+  // TODO: Put these checksums in a map checksum file.
+  // Already have a loadMap utility method that gets the checksums of files.
+  mapChecksums["ultrav"] = "360735597";
+  mapChecksums["1on1r"] = "-756178370";
+  mapChecksums["skull666"] = "-1518401826";
+  mapChecksums["areowalk"] = "-638279197";
+  mapChecksums["ztndm3"] = "-1723650232";
+  mapChecksums["bravado"] = "-1859843008";
 }
 
 Bot::~Bot() {
@@ -220,7 +229,7 @@ void Bot::getChallenge() {
 void Bot::parseServerMessage(Message *message) {
   int msgSvcStart = 0;
   int cmd = 0;
-  int spawnCount = 0;
+
   unsigned protover;
 
   while (1) {
@@ -236,7 +245,6 @@ void Bot::parseServerMessage(Message *message) {
       message->incReadCount();
       break;
     }
-
 
     switch (cmd) {
     case svc_nop: {
@@ -465,11 +473,11 @@ void Bot::parseServerMessage(Message *message) {
           break;
         }
       }
-      message->readLong();
+      spawnCount = message->readLong();
 
       // Gamedir
-      message->readString();
-
+      gameDir = message->readString();
+      LOG << "gamedir = '" << gameDir << "'";
       unsigned playerNum = message->readByte();
 
       if (playerNum & 128) {
@@ -537,10 +545,10 @@ void Bot::parseServerMessage(Message *message) {
         }
 
         requestStringCommand(ss.str());
-      } else if (tokens.size() > 0 && tokens[0] == "fullserverinfo") {
+      } else if (tokens.size() > 2 && tokens[0] == "fullserverinfo") {
+        mapName = Utility::findValue("map", line);
+        LOG << "MAP NAME = " << mapName;
         currentState = Info;
-        ipRecv = true;
-      } else if (tokens.size() == 2 && tokens[0] == "exec" && tokens[1] == "1on1r.cfg\n") {
       }
       break;
     }
@@ -560,7 +568,11 @@ void Bot::parseServerMessage(Message *message) {
         me = &players[slot];
         me->slot = slot;
         if (currentState == Spawn) {
-          currentState = JoinTeam;
+          if (gameDir == "qw") {
+            currentState = Done;
+          } else {
+            currentState = JoinTeam;
+          }
         }
       }
       break;
@@ -590,7 +602,7 @@ void Bot::parseServerMessage(Message *message) {
       }
 
       vec3 position = vec3(players[num].coords[0], players[num].coords[2], players[num].coords[1]);
-      players[num].velocity = (position - players[num].position) * (float)getTime();
+      players[num].velocity = (position - players[num].position) * (float) getTime();
       players[num].position = position;
       players[num].time = getTime();
 
@@ -769,8 +781,6 @@ void Bot::updateState() {
   }
   switch (currentState) {
   case Info:
-    requestStringCommand("unmuteall");
-    requestStringCommand("setinfo \"chat\" \"1\"");
     setInfo();
     currentState = None;
     break;
@@ -779,12 +789,16 @@ void Bot::updateState() {
     break;
   case Spawn:
     break;
-  case Begin:
+  case Begin: {
     requestStringCommand(spawnCmd, 2);
-    requestStringCommand("begin 1", 3);
+    stringstream ss;
+    ss << "begin " << spawnCount;
+    requestStringCommand(ss.str().c_str(), 3);
     currentState = Spawn;
     break;
+  }
   case JoinTeam: {
+    // Assuming it is fortress gamedir now.
     sendImpulse(1, 0);
     requestStringCommand("setinfo \"topcolor\" \"13\"", 0);
     requestStringCommand("setinfo \"bottomcolor\" \"13\"", 0);
@@ -821,7 +835,17 @@ void Bot::setInfo() {
   s.writeString("setinfo emodel 6967");
   s.writeByte(0);
   s.writeByte(4);
-  s.writeString("prespawn 1 0 -756178370");
+  stringstream ss;
+  string mapChecksum2 = "-756178370";
+
+  if (mapChecksums.find(mapName) != mapChecksums.end()) {
+    mapChecksum2 = mapChecksums.at(mapName);
+  } else {
+    LOG << "Failed to look up checksum for map " << mapName << ", using default for 1on1r";
+  }
+
+  ss << "prespawn " << spawnCount << " 0 " << mapChecksum2;
+  s.writeString(ss.str().c_str());
   s.writeByte(0);
   outputQueue.push(s);
 }
@@ -928,7 +952,7 @@ void Bot::think() {
 
     }
 
-    if(blood <= 0) {
+    if (blood <= 0) {
       LOG << "IM DEAD!";
       cmds[frame].buttons = 1;
       respawnTimer += getTime();

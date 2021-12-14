@@ -9,8 +9,9 @@ int main(int argc, char **argv) {
     LOG << "./quakenet ip port";
     return 0;
   }
-    Bot b(argv);
-    b.mainLoop();
-    
-    return 0;
+
+  Bot b(argv);
+  b.mainLoop();
+
+  return 0;
 }
