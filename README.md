@@ -18,3 +18,8 @@ This is a quake bot that connects via UDP to a QW server, still under developmen
 - cd ./build
 - cmake ../
 - make
+
+# How to run
+
+./quakenet <ip> <port>
+  
