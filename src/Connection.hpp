@@ -101,7 +101,7 @@ public:
   Connection(const Connection& orig);
   virtual ~Connection();
 
-  void connect();  
+  void connect(char **argv);
   int send(Message msg);
   int sendConnectionless(Message msg);
   

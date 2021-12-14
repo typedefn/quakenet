@@ -26,11 +26,11 @@
 #define MAX_GENOMES 127
 
 enum HandShakeState {
-  None, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done,
+  None, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done
 };
 class Bot {
 public:
-  Bot();
+  Bot(char **argv);
   virtual ~Bot();
 
   void mainLoop();
@@ -44,6 +44,7 @@ private:
 
   PlayerInfo *me;
   PlayerInfo players[MAX_CLIENTS];
+  char **argv;
 
   float blood;
   float armor;

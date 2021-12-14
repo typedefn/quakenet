@@ -8,7 +8,7 @@
 #include "Bot.hpp"
 #include "Gene.hpp"
 
-Bot::Bot() {
+Bot::Bot(char **argv) {
   challenge = 0;
   blood = 0;
   armor = 0;
@@ -42,13 +42,14 @@ Bot::Bot() {
     players[i].pl = 0;
     players[i].slot = 0;
   }
+  this->argv = argv;
 }
 
 Bot::~Bot() {
 }
 
 void Bot::mainLoop() {
-  connection.connect();
+  connection.connect(this->argv);
   getChallenge();
   nullCommand(&nullcmd);
 

@@ -26,7 +26,7 @@ Connection::Connection(const Connection &orig) {
 Connection::~Connection() {
 }
 
-void Connection::connect() {
+void Connection::connect(char **argv) {
 	// Creating socket file descriptor
 	if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("socket creation failed");
@@ -37,10 +37,11 @@ void Connection::connect() {
 
 	// Filling server information
 	servaddr.sin_family = AF_INET;
-	servaddr.sin_port = htons(PORT);
-	servaddr.sin_addr.s_addr = INADDR_ANY; //inet_addr(argv[1]); ////INADDR_ANY;
+	servaddr.sin_port = htons(atoi(argv[2]));
+	servaddr.sin_addr.s_addr = inet_addr(argv[1]);
 
-	qport = 48984;
+	LOG << "Attempting to connect to " << argv[1] << ":" << argv[2];
+
 	srand((unsigned) time(nullptr));
 	qport = (rand() % 10000) + 48984;
 
