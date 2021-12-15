@@ -165,7 +165,7 @@ void Utility::loadMap(const string &path, int *mapchecksum, int *mapchecksum2) {
       }
 
       // Use the new buffer
-      buf = paddedBuffer;
+      delete[] paddedBuffer;
     }
 
     cmodBase = (byte *)header;
@@ -183,7 +183,7 @@ void Utility::loadMap(const string &path, int *mapchecksum, int *mapchecksum2) {
       checksum2 ^= littleLong(Com_BlockChecksum(cmodBase + header->lumps[i].fileofs, header->lumps[i].filelen));
     }
 
-    delete[] paddedBuffer;
+
     delete[] buf;
 
     LOG << "Checksum for " << path << " is " << checksum << "/" << (int)checksum2;
