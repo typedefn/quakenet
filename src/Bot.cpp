@@ -55,7 +55,15 @@ Bot::Bot(char **argv) {
   mapChecksums["ztndm3"] = "-1723650232";
   mapChecksums["bravado"] = "-1859843008";
 
+  waypoints[""] = vector<vec3>();
+  waypoints["patrol"] = vector<vec3>();
+  waypoints["start"] = vector<vec3>();
+
   frameTime = 0.05;
+
+  for(size_t i = 0; i < MAX_CL_STATS; i++) {
+    stats[i] = 0;
+  }
 }
 
 Bot::~Bot() {
@@ -77,19 +85,15 @@ void Bot::mainLoop() {
     throw runtime_error(ss.str());
   }
 
-  char junk;
-
   while (!fs.eof()) {
     stringstream ss;
-    string type;
     char line[256] = { 0 };
     fs.getline(line, 256);
     ss << line;
-    if (line[0] == 'w' && line[1] == 'p') {
-      glm::vec3 waypoint;
-      ss >> junk >> junk >> waypoint.x >> waypoint.y >> waypoint.z;
-      waypoints.push_back(waypoint);
-    }
+    string type;
+    glm::vec3 waypoint;
+    ss >> type >> waypoint.x >> waypoint.y >> waypoint.z;
+    waypoints.at(type).push_back(waypoint);
   }
 
   fs.close();
@@ -617,6 +621,10 @@ void Bot::parseServerMessage(Message *message) {
       for (int i = 0; i < 3; i++) {
         float a = message->readFloat();
         players[num].coords[i] = a;
+
+        if (num == targetSlot) {
+//          LOG << i << " " << a;
+        }
       }
 
       vec3 position = vec3(players[num].coords[0], players[num].coords[2], players[num].coords[1]);
@@ -674,11 +682,11 @@ void Bot::parseServerMessage(Message *message) {
         if (flags & (PF_VELOCITY1 << i)) {
           short v = message->readShort();
           if (i == 0) {
-            players[num].velocity.x = -v * frameTime;
+            players[num].velocity.x = v;
           } else if (i == 1) {
-            players[num].velocity.z = -v * frameTime;
+            players[num].velocity.z = v;
           } else if (i == 2) {
-            players[num].velocity.y = v * frameTime;
+            players[num].velocity.y = v;
           }
 
 //          LOG << "PF_VELOCITY" << i << "(" << num << ")" << "     = " << v * frameTime;
@@ -687,11 +695,16 @@ void Bot::parseServerMessage(Message *message) {
         }
       }
 
-      players[num].speed = sqrt(players[num].velocity[0] * players[num].velocity[0] + players[num].velocity[1] * players[num].velocity[1] + players[num].velocity[2] * players[num].velocity[2]);
+      float velLength = length(players[num].velocity);
+      if (velLength > 0.001) {
+        players[num].direction = normalize(players[num].velocity);
+      }
 
-//      for (int i = 0; i < 3; i++) {
-//        players[num].velocity[i] *= frameTime;
-//      }
+      for (int i = 0; i < 3; i++) {
+        players[num].velocity[i] *= frameTime;
+      }
+
+      players[num].speed = sqrt(players[num].velocity[0] * players[num].velocity[0] + players[num].velocity[1] * players[num].velocity[1] + players[num].velocity[2] * players[num].velocity[2]);
 
       if (flags & PF_MODEL) {
 //				cout << "PF_MODEL(" << num << ")" << "         =  "
@@ -965,8 +978,7 @@ void Bot::think() {
   static double extramsec = 0;
   LOG << "Thinking thread launched!";
   string previousDescription;
-  double previousTime = 0;
-  double counter = 0;
+  Goal *goal = nullptr;
 
   for (int i = frame; i < UPDATE_BACKUP; i++) {
     nullCommand(&cmds[i]);
@@ -992,15 +1004,17 @@ void Bot::think() {
       botMemory->updateVision();
       targetingSystem->update();
 
-      Goal *goal = nullptr;
       double maxScore = -1.0;
 
-      for (const auto &g : goals) {
-        double desire = g->calculateDesirability();
-
-        if (desire > maxScore) {
-          maxScore = desire;
-          goal = g.get();
+      // Search for new goal current goal is completed.
+      if ((goal == nullptr) || (goal != nullptr && goal->isCompleted())) {
+        for (const auto &g : goals) {
+          double desire = g->calculateDesirability();
+//          LOG << g->description() << " desire " << desire;
+          if (desire > maxScore) {
+            maxScore = desire;
+            goal = g.get();
+          }
         }
       }
 
@@ -1014,19 +1028,11 @@ void Bot::think() {
         previousDescription = description;
       }
 
-    }
-
-    if (getHealth() <= 0) {
-      getCommand()->buttons = 0;
+    } else if (getHealth() <= 0 && getArmor() == 0) {
+      getCommand()->buttons = 1;
       getCommand()->forwardMove = 0;
-      previousTime = respawnTimer;
-      respawnTimer = getTime();
-      counter += (respawnTimer - previousTime);
-      if (counter > 3) {
-        counter = 0;
-        getCommand()->buttons = 1;
-        LOG << "Health is " << getHealth() << ", trying to respawn!";
-      }
+      targetingSystem->clearTarget();
+      LOG << "Health is " << getHealth() << " armor is = " << getArmor() << ", trying to respawn!";
     }
 
     Message s;

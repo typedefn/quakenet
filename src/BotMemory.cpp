@@ -85,13 +85,13 @@ bool BotMemory::isWithinFov(int id) {
     return false;
   }
 
-  glm::vec3 targetPosition = getLastSensedPosition(id);
-  glm::vec3 facing = glm::normalize(glm::cross(glm::normalize(me->position), glm::vec3(0, 1, 0)));
-  glm::vec3 directionToTarget = glm::normalize(targetPosition - me->position);
+  vec3 t = owner->getTargetingSystem()->getLastRecordedPosition();
+  vec3 p = me->position;
 
-  float deltaAngle = glm::dot(directionToTarget, facing);
+  vec3 t1 = normalize(t - me->position);
+  float d = dot(t1, me->direction);
 
-  return deltaAngle >= 0.01;
+  return d > 0.0;
 }
 
 vec3 BotMemory::getLastSensedPosition(int id) {

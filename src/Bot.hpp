@@ -69,7 +69,7 @@ private:
   TsQueue<Message> outputQueue;
   TsQueue<Message> inputQueue;
 
-  vector<glm::vec3> waypoints;
+  map<string, vector<glm::vec3>> waypoints;
 
   vector<vector<double>> memory;
   std::thread thinker;
@@ -153,7 +153,7 @@ public:
     return cmd;
   }
 
-  vector<glm::vec3> getWaypoints() const {
+  map<string, vector<glm::vec3>> getWaypoints() const {
     return waypoints;
   }
   int getBlood() {

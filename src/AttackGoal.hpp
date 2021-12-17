@@ -7,7 +7,7 @@
 
 #ifndef ATTACKGOAL_HPP_
 #define ATTACKGOAL_HPP_
-#include "Common.hpp"
+
 #include "Goal.hpp"
 #include "StrafeGoal.hpp"
 class Bot;
@@ -22,7 +22,7 @@ public:
     return "Attacking";
   }
 private:
-  vector<unique_ptr<Goal>> goals;
+
 };
 
 #endif /* ATTACKGOAL_HPP_ */

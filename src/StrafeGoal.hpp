@@ -22,7 +22,8 @@ public:
     return "Strafing";
   }
 private:
-
+  double previousDist;
+  double dist;
 };
 
 #endif /* STRAFEGOAL_HPP_ */

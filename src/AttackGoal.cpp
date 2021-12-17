@@ -64,6 +64,7 @@ void AttackGoal::update() {
     cmd->angles[0] = -pitchAngle;
     cmd->forwardMove = sign;
     cmd->buttons = 1;
+    completed = true;
   }
 
   for (const auto &g : goals) {
@@ -83,7 +84,7 @@ double AttackGoal::calculateDesirability() {
     glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
     float dist = glm::distance(targetPosition, me->position);
 
-    desire = tweaker * (owner->getHealth() * owner->getActiveWeapon())/dist;
+    desire = tweaker * (owner->getHealth())/dist;
   }
 
   return desire;

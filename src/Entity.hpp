@@ -25,6 +25,7 @@ struct PlayerInfo {
   vec3 position;
   double time;
   float speed;
+  vec3 direction;
 };
 
 #endif /* ENTITY_HPP_ */

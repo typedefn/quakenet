@@ -14,6 +14,7 @@ PatrolGoal::PatrolGoal(Bot *owner) {
   currentTime = 0;
   totalTime = 0;
   previousDist = 0;
+  dist = 0;
 }
 
 PatrolGoal::~PatrolGoal() {
@@ -30,38 +31,40 @@ void PatrolGoal::update() {
   currentTime = owner->getTime();
 
   totalTime += (currentTime - previousTime);
-  vector<vec3> waypoints = owner->getWaypoints();
+  vector<vec3> waypoints = owner->getWaypoints()["start"];
 
   static int wi = 0;
-  const float maxDistance = 100.0;
+  const float maxDistance = 150.0;
   glm::vec3 targetPosition(waypoints.at(wi).x, me->position.y, waypoints.at(wi).z);
 
-  previousDist = dist;
   dist = glm::distance(targetPosition, me->position);
+  glm::vec3 dir = targetPosition - me->position;
+  cmd->angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
 
   if (dist <= maxDistance) {
+
+    if (wi == waypoints.size() - 1) {
+      completed = true;
+    }
+
     wi = (wi + 1) % waypoints.size();
     totalTime = 0;
+    cmd->forwardMove = 0;
+  } else {
+    cmd->forwardMove = 500;
   }
 
-  glm::vec3 dir = targetPosition - me->position;
-
-  cmd->angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
-  cmd->forwardMove = 500;
-
-  if (totalTime > 5 && (dist - previousDist) < 15.0) {
-    wi = (wi + 1) % waypoints.size();
-  }
 }
 
 double PatrolGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
-  double desire = 1;
-  double tweak = 1;
-  if (targetingSystem->isTargetPresent()) {
-    int id = targetingSystem->getTarget();
-    desire = tweak * owner->getHealth() * memory->getTimeEntityHasBeenOutOfFov(id);
+  double desire = 0.001;
+  double tweak = 1.0;
+  // TODO: Get max health from server.
+  double maxHealth = 100;
+  if (owner->getHealth() <= 0 && owner->getArmor() <= 0) {
+    desire = tweak * (maxHealth - owner->getHealth());
   }
 
   return desire;
