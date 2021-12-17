@@ -61,9 +61,10 @@ Bot::Bot(char **argv) {
 
   frameTime = 0.05;
 
-  for(size_t i = 0; i < MAX_CL_STATS; i++) {
-    stats[i] = 0;
+  for (size_t i = 0; i < MAX_CL_STATS; i++) {
+    setStat(i, 0);
   }
+  respawned = false;
 }
 
 Bot::~Bot() {
@@ -146,12 +147,20 @@ void Bot::mainLoop() {
   }
 }
 
-PlayerInfo* Bot::getPlayerById(int id) {
-  return &players[id];
+PlayerInfo* Bot::getPlayerById(size_t id) {
+  PlayerInfo *pi = nullptr;
+
+  infoLock.lock();
+  pi = &players[id];
+  infoLock.unlock();
+
+  return pi;
 }
 
 PlayerInfo* Bot::getMe() {
-  return me;
+  size_t mySlot = me->slot;
+
+  return getPlayerById(mySlot);
 }
 
 double Bot::getTime() {
@@ -329,7 +338,7 @@ void Bot::parseServerMessage(Message *message) {
       int j = message->readByte();
 
       if (i >= 0 && i < MAX_CL_STATS) {
-        stats[i] = j;
+        setStat(i, j);
       }
 
       break;
@@ -430,7 +439,9 @@ void Bot::parseServerMessage(Message *message) {
         break;
       }
 
-      players[slot].frags = message->readShort();
+      PlayerInfo *pi = getPlayerById(slot);
+      pi->frags = message->readShort();
+
       break;
     }
     case svc_updateping: {
@@ -587,7 +598,7 @@ void Bot::parseServerMessage(Message *message) {
       // TODO: fix hardcoded name of bot later.
       if (name == "krupt_drv") {
         LOG << "I AM IN SLOT " << slot << " id = " << userId;
-        me = &players[slot];
+        me = getPlayerById(slot);
         me->slot = slot;
         if (currentState == Spawn) {
           if (gameDir == "qw") {
@@ -609,27 +620,29 @@ void Bot::parseServerMessage(Message *message) {
         break;
       }
 
+      PlayerInfo *pi = getPlayerById(num);
+
       if (me != nullptr && num != me->slot) {
         targetSlot = num;
-        players[targetSlot].slot = num;
+        pi->slot = num;
       }
 
       short flags = message->readShort();
-      players[num].flags = flags;
-      players[num].active = true;
+      pi->flags = flags;
+      pi->active = true;
 
       for (int i = 0; i < 3; i++) {
         float a = message->readFloat();
-        players[num].coords[i] = a;
+        pi->coords[i] = a;
 
         if (num == targetSlot) {
 //          LOG << i << " " << a;
         }
       }
 
-      vec3 position = vec3(players[num].coords[0], players[num].coords[2], players[num].coords[1]);
-      players[num].position = position;
-      players[num].time = getTime();
+      vec3 position = vec3(pi->coords[0], pi->coords[2], pi->coords[1]);
+      pi->position = position;
+      pi->time = getTime();
 
       byte frame = message->readByte();
 
@@ -682,29 +695,29 @@ void Bot::parseServerMessage(Message *message) {
         if (flags & (PF_VELOCITY1 << i)) {
           short v = message->readShort();
           if (i == 0) {
-            players[num].velocity.x = v;
+            pi->velocity.x = v;
           } else if (i == 1) {
-            players[num].velocity.z = v;
+            pi->velocity.z = v;
           } else if (i == 2) {
-            players[num].velocity.y = v;
+            pi->velocity.y = v;
           }
 
 //          LOG << "PF_VELOCITY" << i << "(" << num << ")" << "     = " << v * frameTime;
         } else {
-          players[num].velocity[i] = 0;
+          pi->velocity[i] = 0;
         }
       }
 
-      float velLength = length(players[num].velocity);
+      float velLength = length(pi->velocity);
       if (velLength > 0.001) {
-        players[num].direction = normalize(players[num].velocity);
+        pi->direction = normalize(pi->velocity);
       }
 
       for (int i = 0; i < 3; i++) {
-        players[num].velocity[i] *= frameTime;
+        pi->velocity[i] *= frameTime;
       }
 
-      players[num].speed = sqrt(players[num].velocity[0] * players[num].velocity[0] + players[num].velocity[1] * players[num].velocity[1] + players[num].velocity[2] * players[num].velocity[2]);
+      pi->speed = sqrt(pi->velocity[0] * pi->velocity[0] + pi->velocity[1] * pi->velocity[1] + pi->velocity[2] * pi->velocity[2]);
 
       if (flags & PF_MODEL) {
 //				cout << "PF_MODEL(" << num << ")" << "         =  "
@@ -735,7 +748,7 @@ void Bot::parseServerMessage(Message *message) {
       byte i = message->readByte();
       long j = message->readLong();
       if (i >= 0 && i < MAX_CL_STATS) {
-        stats[i] = j;
+        setStat(i, j);
       }
       break;
     }
@@ -757,21 +770,6 @@ void Bot::parseServerMessage(Message *message) {
       }
 
       vec3 from(coords[0], coords[2], coords[1]);
-
-      distanceToMe = distance(from, me->position);
-      distanceToTarget = distance(from, players[targetSlot].position);
-
-//
-//      LOG << "svc_damage coords " << from.x << " " << from.y << " " << from.z;
-//      LOG << "        me coords " << me->position.x << " " << me->position.z << " " << me->position.y;
-//      LOG << "    target coords " << players[targetSlot].position.x << " " << players[targetSlot].position.z << " " << players[targetSlot].position.y;
-//      LOG << "distanceToMe " << distanceToMe << " distanceToTarget " << distanceToTarget << " b: " << blood_  << " a: " << armor_;
-//      if (fabs(distanceToMe) < 10) {
-//        armor -= armor_;
-//        blood -= blood_;
-//        LOG << "Took a hit armor = " << armor << " health = " << blood;
-//      }
-
       break;
     }
     case svc_sound: {
@@ -979,7 +977,9 @@ void Bot::think() {
   LOG << "Thinking thread launched!";
   string previousDescription;
   Goal *goal = nullptr;
-
+  double previousTime = 0;
+  double counter = 0;
+  double currentTime = 0;
   for (int i = frame; i < UPDATE_BACKUP; i++) {
     nullCommand(&cmds[i]);
   }
@@ -1028,11 +1028,24 @@ void Bot::think() {
         previousDescription = description;
       }
 
-    } else if (getHealth() <= 0 && getArmor() == 0) {
-      getCommand()->buttons = 1;
-      getCommand()->forwardMove = 0;
-      targetingSystem->clearTarget();
-      LOG << "Health is " << getHealth() << " armor is = " << getArmor() << ", trying to respawn!";
+    }
+
+    if (getHealth() <= 0) {
+      previousTime = currentTime;
+      currentTime = getTime();
+
+      counter += (currentTime - previousTime);
+
+      getCommand()->buttons = 0;
+
+      if (counter > 2) {
+        getCommand()->buttons = 1;
+        getCommand()->forwardMove = 0;
+        targetingSystem->clearTarget();
+        setRespawned(true);
+        LOG << "Health is " << getHealth() << " armor is " << getArmor() << ", trying to respawn!";
+        counter = 0;
+      }
     }
 
     Message s;

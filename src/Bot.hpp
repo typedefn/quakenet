@@ -35,7 +35,7 @@ public:
 
   void mainLoop();
 
-  PlayerInfo* getPlayerById(int id);
+  PlayerInfo* getPlayerById(size_t id);
   PlayerInfo* getMe();
 
 private:
@@ -91,27 +91,42 @@ private:
   int   stats[MAX_CL_STATS];
 
   void nullCommand(Command *cmd);
+
+  mutex infoLock;
+  mutex statLock;
+  bool respawned;
 public:
 
   int getStat(int stat) {
+    int value = 0;
+    statLock.lock();
     if (stat >= MAX_CL_STATS) {
       return 0;
     }
 
-    return stats[stat];
+    value = stats[stat];
+    statLock.unlock();
+    return value;
+  }
+
+  void setStat(int stat, int value) {
+    statLock.lock();
+    stats[stat] = value;
+    statLock.unlock();
   }
 
   int getHealth() {
-    return stats[STAT_HEALTH];
+    return getStat(STAT_HEALTH);
   }
 
   int getArmor() {
-    return stats[STAT_ARMOR];
+    return getStat(STAT_ARMOR);
   }
 
   int getActiveWeapon() {
-    return stats[STAT_ACTIVEWEAPON];
+    return getStat(STAT_ACTIVEWEAPON);
   }
+
   BotMemory* getBotMemory() {
     return botMemory.get();
   }
@@ -156,10 +171,13 @@ public:
   map<string, vector<glm::vec3>> getWaypoints() const {
     return waypoints;
   }
-  int getBlood() {
-    return blood;
+  bool getRespawned() {
+    return respawned;
   }
 
+  void setRespawned(bool value) {
+    respawned = value;
+  }
 };
 
 #endif /* BOT_HPP */

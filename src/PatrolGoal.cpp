@@ -54,6 +54,7 @@ void PatrolGoal::update() {
     cmd->forwardMove = 500;
   }
 
+  owner->setRespawned(false);
 }
 
 double PatrolGoal::calculateDesirability() {
@@ -61,10 +62,8 @@ double PatrolGoal::calculateDesirability() {
   BotMemory *memory = owner->getBotMemory();
   double desire = 0.001;
   double tweak = 1.0;
-  // TODO: Get max health from server.
-  double maxHealth = 100;
-  if (owner->getHealth() <= 0 && owner->getArmor() <= 0) {
-    desire = tweak * (maxHealth - owner->getHealth());
+  if (owner->getRespawned()) {
+    desire = tweak * owner->getHealth();
   }
 
   return desire;

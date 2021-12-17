@@ -64,12 +64,13 @@ void AttackGoal::update() {
     cmd->angles[0] = -pitchAngle;
     cmd->forwardMove = sign;
     cmd->buttons = 1;
-    completed = true;
   }
 
   for (const auto &g : goals) {
     g->update();
   }
+
+  completed = true;
 }
 
 double AttackGoal::calculateDesirability() {

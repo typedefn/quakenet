@@ -50,9 +50,10 @@ void SeekGoal::update() {
     if (goal != nullptr) {
       goal->update();
     }
-
-    completed = true;
   }
+
+
+  completed = true;
 }
 
 double SeekGoal::calculateDesirability() {
@@ -64,7 +65,7 @@ double SeekGoal::calculateDesirability() {
   double tweak = 1.0;
   // TODO: Get max health from server.
   double maxHealth = 100;
-  if (targetingSystem->isTargetPresent() && !targetingSystem->isTargetWithinFov()) {
+  if (targetingSystem->isTargetPresent() && !targetingSystem->isTargetWithinFov() && owner->getHealth() > 0) {
     int id = targetingSystem->getTarget();
     glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
     float dist = glm::distance(me->position, targetPosition);

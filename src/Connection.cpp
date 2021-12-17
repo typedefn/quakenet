@@ -43,9 +43,7 @@ void Connection::connect(char **argv) {
 	LOG << "Attempting to connect to " << argv[1] << ":" << argv[2];
 
 	srand((unsigned) time(nullptr));
-	// 15712
 	qport = (rand() % 10000) + 13984;
-	LOG << "QPORT = " << qport;
 	struct sockaddr_in clientAddr;
 	memset(&clientAddr, 0, sizeof(struct sockaddr_in));
 	clientAddr.sin_family = AF_INET;
