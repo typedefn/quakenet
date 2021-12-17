@@ -49,7 +49,7 @@ public:
 
   static int randomRanged(int a, int b);
   static double randomFloat();
-
+  static int getRandomNormal();
   static void loadMap(const string & path, int *mapchecksum, int *mapchecksum2);
 
   static int littleLong(int l);

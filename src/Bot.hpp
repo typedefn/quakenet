@@ -87,9 +87,31 @@ private:
   double timeChallengeSent;
   bool requestChallenge;
   float frameTime;
+
+  int   stats[MAX_CL_STATS];
+
   void nullCommand(Command *cmd);
 public:
 
+  int getStat(int stat) {
+    if (stat >= MAX_CL_STATS) {
+      return 0;
+    }
+
+    return stats[stat];
+  }
+
+  int getHealth() {
+    return stats[STAT_HEALTH];
+  }
+
+  int getArmor() {
+    return stats[STAT_ARMOR];
+  }
+
+  int getActiveWeapon() {
+    return stats[STAT_ACTIVEWEAPON];
+  }
   BotMemory* getBotMemory() {
     return botMemory.get();
   }
@@ -128,7 +150,6 @@ public:
 
   Command* getCommand() {
     Command * cmd = &cmds[frame];
-//    frame = (frame + 1) % UPDATE_BACKUP;
     return cmd;
   }
 
@@ -138,6 +159,7 @@ public:
   int getBlood() {
     return blood;
   }
+
 };
 
 #endif /* BOT_HPP */

@@ -19,6 +19,9 @@ public:
   virtual string description() const = 0;
 protected:
   Bot *owner;
+  double totalTime;
+  double currentTime;
+  int sign;
 };
 
 

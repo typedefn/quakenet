@@ -41,14 +41,15 @@ double SeekGoal::calculateDesirability() {
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
 
-  double desire = 0.0;
+  double desire = 0.05;
+  double tweak = 1.0;
 
-  if (targetingSystem->isTargetPresent()) {
+  if (targetingSystem->isTargetPresent() && targetingSystem->getTimeTargetHasBeenVisible() > 0) {
     int id = targetingSystem->getTarget();
     glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
     float dist = glm::distance(targetPosition, me->position);
 
-    desire = dist/100.0;
+    desire = tweak * (1 - owner->getHealth()/dist);
   }
 
   return desire;

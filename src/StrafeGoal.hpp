@@ -22,9 +22,7 @@ public:
     return "Strafing";
   }
 private:
-  double totalTime;
-  double currentTime;
-  int sign;
+
 };
 
 #endif /* STRAFEGOAL_HPP_ */

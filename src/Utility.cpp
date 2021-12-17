@@ -91,13 +91,31 @@ double Utility::randomFloat() {
   return (Utility::randomRanged(1, 100) / 102.0);
 }
 
+int Utility::getRandomNormal() {
+  int sign = 0;
+
+  int r = ((rand() % 3));
+
+  switch (r) {
+  case 0:
+    sign = 1;
+    break;
+  case 1:
+    sign = -1;
+    break;
+  default:
+    sign = 0;
+  }
+
+  return sign;
+}
 void Utility::loadMap(const string &path, int *mapchecksum, int *mapchecksum2) {
   unsigned int i = 0;
-  byte     *cmodBase = nullptr;
+  byte *cmodBase = nullptr;
   ifstream file(path, ios::binary | ios::ate);
-  FILE* f = fopen(path.c_str(), "r");
+  FILE *f = fopen(path.c_str(), "r");
   size_t filesize = file.tellg();
-  Header * header = nullptr;
+  Header *header = nullptr;
   bool padLumps = false;
   int requiredLength = 0;
   unsigned int *paddedBuffer = nullptr;
@@ -115,78 +133,74 @@ void Utility::loadMap(const string &path, int *mapchecksum, int *mapchecksum2) {
 
   header = (Header*) buf;
 
-  i = littleLong (header->version);
-
+  i = littleLong(header->version);
 
   // swap all the lumps
-    for (i = 0; i < sizeof(Header) / 4; i++) {
-      ((int *)header)[i] = littleLong(((int *)header)[i]);
+  for (i = 0; i < sizeof(Header) / 4; i++) {
+    ((int*) header)[i] = littleLong(((int*) header)[i]);
+  }
+
+  // Align the lumps
+  for (i = 0; i < HEADER_LUMPS; ++i) {
+    padLumps |= (header->lumps[i].fileofs % 4) != 0;
+
+    if (header->lumps[i].fileofs < 0 || header->lumps[i].filelen < 0) {
+      LOG << "CM_LoadMap: " << path << " has invalid lump definitions";
+    }
+    if (header->lumps[i].fileofs + header->lumps[i].filelen > filesize || header->lumps[i].fileofs + header->lumps[i].filelen < 0) {
+      LOG << "CM_LoadMap: " << path << " has invalid lump definitions";
     }
 
-    // Align the lumps
+    requiredLength += header->lumps[i].filelen;
+  }
+
+  if (padLumps) {
+    int position = 0;
+    int requiredSize = sizeof(Header) + requiredLength + HEADER_LUMPS * 4 + 1;
+
+    paddedBuffer = new unsigned int[requiredSize];
+
+    // Copy header
+    memcpy(paddedBuffer, buf, sizeof(Header));
+    header = (Header*) paddedBuffer;
+    position += sizeof(Header);
+
+    // Copy lumps: align on 4-byte boundary
     for (i = 0; i < HEADER_LUMPS; ++i) {
-      padLumps |= (header->lumps[i].fileofs % 4) != 0;
-
-      if (header->lumps[i].fileofs < 0 || header->lumps[i].filelen < 0) {
-        LOG << "CM_LoadMap: " << path << " has invalid lump definitions";
+      if (position % 4) {
+        position += 4 - (position % 4);
       }
-      if (header->lumps[i].fileofs + header->lumps[i].filelen > filesize || header->lumps[i].fileofs + header->lumps[i].filelen < 0) {
-        LOG << "CM_LoadMap: " << path << " has invalid lump definitions";
+      if (position + header->lumps[i].filelen > requiredSize) {
+        LOG << "CM_LoadMap: " << path << " caused error while aligning lumps";
       }
+      memcpy((byte*) paddedBuffer + position, ((byte*) buf) + header->lumps[i].fileofs, header->lumps[i].filelen);
+      header->lumps[i].fileofs = position;
 
-      requiredLength += header->lumps[i].filelen;
+      position += header->lumps[i].filelen;
     }
 
+    // Use the new buffer
+    delete[] paddedBuffer;
+  }
 
+  cmodBase = (byte*) header;
 
-    if (padLumps) {
-      int position = 0;
-      int requiredSize = sizeof(Header) + requiredLength + HEADER_LUMPS * 4 + 1;
+  unsigned int checksum, checksum2 = 0;
 
-      paddedBuffer = new unsigned int[requiredSize];
+  // checksum all of the map, except for entities
+  for (i = 0; i < HEADER_LUMPS; i++) {
+    if (i == LUMP_ENTITIES)
+      continue;
+    checksum ^= littleLong(Com_BlockChecksum(cmodBase + header->lumps[i].fileofs, header->lumps[i].filelen));
 
-      // Copy header
-      memcpy(paddedBuffer, buf, sizeof(Header));
-      header = (Header*)paddedBuffer;
-      position += sizeof(Header);
+    if (i == LUMP_VISIBILITY || i == LUMP_LEAFS || i == LUMP_NODES)
+      continue;
+    checksum2 ^= littleLong(Com_BlockChecksum(cmodBase + header->lumps[i].fileofs, header->lumps[i].filelen));
+  }
 
-      // Copy lumps: align on 4-byte boundary
-      for (i = 0; i < HEADER_LUMPS; ++i) {
-        if (position % 4) {
-          position += 4 - (position % 4);
-        }
-        if (position + header->lumps[i].filelen > requiredSize) {
-          LOG << "CM_LoadMap: " << path << " caused error while aligning lumps";
-        }
-        memcpy((byte*)paddedBuffer + position, ((byte*)buf) + header->lumps[i].fileofs, header->lumps[i].filelen);
-        header->lumps[i].fileofs = position;
+  delete[] buf;
 
-        position += header->lumps[i].filelen;
-      }
-
-      // Use the new buffer
-      delete[] paddedBuffer;
-    }
-
-    cmodBase = (byte *)header;
-
-    unsigned int  checksum, checksum2 = 0;
-
-    // checksum all of the map, except for entities
-    for (i = 0; i < HEADER_LUMPS; i++) {
-      if (i == LUMP_ENTITIES)
-        continue;
-      checksum ^= littleLong(Com_BlockChecksum(cmodBase + header->lumps[i].fileofs, header->lumps[i].filelen));
-
-      if (i == LUMP_VISIBILITY || i == LUMP_LEAFS || i == LUMP_NODES)
-        continue;
-      checksum2 ^= littleLong(Com_BlockChecksum(cmodBase + header->lumps[i].fileofs, header->lumps[i].filelen));
-    }
-
-
-    delete[] buf;
-
-    LOG << "Checksum for " << path << " is " << checksum << "/" << (int)checksum2;
+  LOG << "Checksum for " << path << " is " << checksum << "/" << (int) checksum2;
 }
 
 int Utility::littleLong(int l) {
@@ -202,5 +216,4 @@ float Utility::littleFloat(float l) {
 #endif
   return l;
 }
-
 

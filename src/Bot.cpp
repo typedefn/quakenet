@@ -323,6 +323,11 @@ void Bot::parseServerMessage(Message *message) {
     case svc_updatestat: {
       int i = message->readByte();
       int j = message->readByte();
+
+      if (i >= 0 && i < MAX_CL_STATS) {
+        stats[i] = j;
+      }
+
       break;
     }
     case svc_soundlist: {
@@ -714,8 +719,11 @@ void Bot::parseServerMessage(Message *message) {
       break;
     }
     case svc_updatestatlong: {
-      byte b = message->readByte();
-      long l = message->readLong();
+      byte i = message->readByte();
+      long j = message->readLong();
+      if (i >= 0 && i < MAX_CL_STATS) {
+        stats[i] = j;
+      }
       break;
     }
     case svc_setangle: {
@@ -740,8 +748,8 @@ void Bot::parseServerMessage(Message *message) {
       distanceToMe = distance(from, me->position);
       distanceToTarget = distance(from, players[targetSlot].position);
 
-
-//      LOG << "svc_damage coords " << coords[0] << " " << coords[1] << " " << coords[2];
+//
+//      LOG << "svc_damage coords " << from.x << " " << from.y << " " << from.z;
 //      LOG << "        me coords " << me->position.x << " " << me->position.z << " " << me->position.y;
 //      LOG << "    target coords " << players[targetSlot].position.x << " " << players[targetSlot].position.z << " " << players[targetSlot].position.y;
 //      LOG << "distanceToMe " << distanceToMe << " distanceToTarget " << distanceToTarget << " b: " << blood_  << " a: " << armor_;
@@ -957,6 +965,8 @@ void Bot::think() {
   static double extramsec = 0;
   LOG << "Thinking thread launched!";
   string previousDescription;
+  double previousTime = 0;
+  double counter = 0;
 
   for (int i = frame; i < UPDATE_BACKUP; i++) {
     nullCommand(&cmds[i]);
@@ -975,7 +985,7 @@ void Bot::think() {
 
     nullCommand(&cmds[frame]);
 
-    if (me != nullptr) {
+    if (me != nullptr && getHealth() > 0) {
 
       extramsec += 0.01;
 
@@ -999,21 +1009,23 @@ void Bot::think() {
         string description = goal->description();
         if (previousDescription != description) {
           LOG << "Bot is " << description << " maxScore " << maxScore;
-
         }
+
         previousDescription = description;
       }
 
     }
 
-    if (blood <= 0) {
-      LOG << "IM DEAD!";
-      cmds[frame].buttons = 1;
-      respawnTimer += getTime();
-      if (respawnTimer > 3) {
-        blood = 100;
-        armor = 200;
-        respawnTimer = 0;
+    if (getHealth() <= 0) {
+      getCommand()->buttons = 0;
+      getCommand()->forwardMove = 0;
+      previousTime = respawnTimer;
+      respawnTimer = getTime();
+      counter += (respawnTimer - previousTime);
+      if (counter > 3) {
+        counter = 0;
+        getCommand()->buttons = 1;
+        LOG << "Health is " << getHealth() << ", trying to respawn!";
       }
     }
 

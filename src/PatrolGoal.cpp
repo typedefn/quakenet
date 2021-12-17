@@ -11,6 +11,9 @@
 PatrolGoal::PatrolGoal(Bot *owner) {
   // TODO Auto-generated constructor stub
   this->owner = owner;
+  currentTime = 0;
+  totalTime = 0;
+  previousDist = 0;
 }
 
 PatrolGoal::~PatrolGoal() {
@@ -23,32 +26,42 @@ void PatrolGoal::update() {
   PlayerInfo *me = owner->getMe();
   Command *cmd = owner->getCommand();
 
-  vector < glm::vec3 > waypoints = owner->getWaypoints();
+  double previousTime = currentTime;
+  currentTime = owner->getTime();
+
+  totalTime += (currentTime - previousTime);
+  vector<vec3> waypoints = owner->getWaypoints();
 
   static int wi = 0;
   const float maxDistance = 100.0;
   glm::vec3 targetPosition(waypoints.at(wi).x, me->position.y, waypoints.at(wi).z);
 
-  float dist = glm::distance(targetPosition, me->position);
+  previousDist = dist;
+  dist = glm::distance(targetPosition, me->position);
 
   if (dist <= maxDistance) {
     wi = (wi + 1) % waypoints.size();
+    totalTime = 0;
   }
 
   glm::vec3 dir = targetPosition - me->position;
 
   cmd->angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
   cmd->forwardMove = 500;
+
+  if (totalTime > 5 && (dist - previousDist) < 15.0) {
+    wi = (wi + 1) % waypoints.size();
+  }
 }
 
 double PatrolGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
-  double desire = 0.2;
-
+  double desire = 1;
+  double tweak = 1;
   if (targetingSystem->isTargetPresent()) {
     int id = targetingSystem->getTarget();
-    desire = memory->getTimeEntityHasBeenOutOfFov(id)/3.0;
+    desire = tweak * owner->getHealth() * memory->getTimeEntityHasBeenOutOfFov(id);
   }
 
   return desire;

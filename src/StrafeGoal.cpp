@@ -13,6 +13,7 @@ StrafeGoal::StrafeGoal(Bot *owner) {
   this->owner = owner;
   currentTime = 0;
   sign = 0;
+  totalTime = 0;
 }
 
 StrafeGoal::~StrafeGoal() {
@@ -31,18 +32,7 @@ void StrafeGoal::update() {
   totalTime += (currentTime - previousTime);
 
   if (totalTime > 3) {
-    int r = ((rand() % 3));
-
-    switch (r) {
-    case 0:
-      sign = 1;
-      break;
-    case 1:
-      sign = -1;
-      break;
-    default:
-      sign = 0;
-    }
+    sign = Utility::getRandomNormal();
     totalTime = 0;
   }
   cmd->sideMove = sign * 250;
