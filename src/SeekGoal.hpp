@@ -16,6 +16,9 @@ public:
   virtual ~SeekGoal();
   void update();
   double calculateDesirability();
+  string description() const {
+    return "Seeking";
+  }
 private:
   vector<unique_ptr<Goal>> goals;
 };

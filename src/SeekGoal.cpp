@@ -12,7 +12,6 @@
 SeekGoal::SeekGoal(Bot *owner) {
   // TODO Auto-generated constructor stub
   this->owner = owner;
-  goals.push_back(make_unique<AttackGoal>(owner));
 }
 
 SeekGoal::~SeekGoal() {
@@ -25,14 +24,9 @@ void SeekGoal::update() {
   PlayerInfo *me = owner->getMe();
   Command *cmd = owner->getCommand();
 
-  for (const auto &g : goals) {
-    g->update();
-  }
-
   if (targetingSystem->isTargetPresent()) {
     const float maxDistance = 400.0;
     glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
-
     float dist = glm::distance(targetPosition, me->position);
 
     glm::vec3 dir = targetPosition - me->position;
@@ -45,14 +39,17 @@ void SeekGoal::update() {
 double SeekGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
+  PlayerInfo *me = owner->getMe();
+
   double desire = 0.0;
 
   if (targetingSystem->isTargetPresent()) {
     int id = targetingSystem->getTarget();
-    desire = owner->getBlood() / 100.0f;
-  }
+    glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
+    float dist = glm::distance(targetPosition, me->position);
 
-  LOG << "Seek goal desire " << desire;
+    desire = dist/100.0;
+  }
 
   return desire;
 }

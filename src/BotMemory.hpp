@@ -13,9 +13,9 @@
 
 class Bot;
 struct MemoryRecord {
+  glm::vec3 lastSensedPosition;
 	double lastVisible;
 	double timeOpponentVisible;
-	glm::vec3 lastSensedPosition;
 	bool withinFov;
 	bool shootable;
 	double timeOutOfFov;

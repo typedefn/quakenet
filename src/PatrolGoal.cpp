@@ -20,28 +20,25 @@ PatrolGoal::~PatrolGoal() {
 void PatrolGoal::update() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
-  PlayerInfo * me = owner->getMe();
+  PlayerInfo *me = owner->getMe();
   Command *cmd = owner->getCommand();
 
-  if (!targetingSystem->isTargetPresent() || !targetingSystem->isTargetWithinFov()) {
-    vector<glm::vec3> waypoints = owner->getWaypoints();
+  vector < glm::vec3 > waypoints = owner->getWaypoints();
 
-    static int wi = 0;
-    const float maxDistance = 100.0;
-    glm::vec3 targetPosition(waypoints.at(wi).x, me->position.y,
-        waypoints.at(wi).z);
+  static int wi = 0;
+  const float maxDistance = 100.0;
+  glm::vec3 targetPosition(waypoints.at(wi).x, me->position.y, waypoints.at(wi).z);
 
-    float dist = glm::distance(targetPosition, me->position);
+  float dist = glm::distance(targetPosition, me->position);
 
-    if (dist <= maxDistance) {
-      wi = (wi + 1) % waypoints.size();
-    }
-
-    glm::vec3 dir = targetPosition - me->position;
-
-    cmd->angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
-    cmd->forwardMove = 500;
+  if (dist <= maxDistance) {
+    wi = (wi + 1) % waypoints.size();
   }
+
+  glm::vec3 dir = targetPosition - me->position;
+
+  cmd->angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
+  cmd->forwardMove = 500;
 }
 
 double PatrolGoal::calculateDesirability() {
@@ -51,10 +48,8 @@ double PatrolGoal::calculateDesirability() {
 
   if (targetingSystem->isTargetPresent()) {
     int id = targetingSystem->getTarget();
-    desire = memory->getTimeEntityHasBeenOutOfFov(id);
+    desire = memory->getTimeEntityHasBeenOutOfFov(id)/3.0;
   }
-
-  LOG << "Patrol goal desire " << desire;
 
   return desire;
 }

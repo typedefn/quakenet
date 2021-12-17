@@ -16,6 +16,7 @@ public:
   virtual ~Goal() {}
   virtual void update() = 0;
   virtual double calculateDesirability() = 0;
+  virtual string description() const = 0;
 protected:
   Bot *owner;
 };

@@ -6,11 +6,13 @@
  */
 
 #include "AttackGoal.hpp"
+
 #include "Bot.hpp"
 
 AttackGoal::AttackGoal(Bot *owner) {
   // TODO Auto-generated constructor stub
   this->owner = owner;
+  goals.push_back(make_unique<StrafeGoal>(owner));
 }
 
 AttackGoal::~AttackGoal() {
@@ -24,10 +26,12 @@ void AttackGoal::update() {
   Command *cmd = owner->getCommand();
 
   if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov()) {
-    vec3 lastPosition = targetingSystem->getLastRecordedPosition();
     int id = targetingSystem->getTarget();
+    vec3 lastPosition = targetingSystem->getLastRecordedPosition();
+    float targetSpeed = owner->getPlayerById(id)->speed;
+
     glm::vec3 toEnemy = lastPosition - me->position;
-    float lookAhead = glm::length(toEnemy)/(1000.0f);
+    float lookAhead = glm::length(toEnemy)/(targetSpeed + 250);
 
     glm::vec3 velocity = owner->getPlayerById(id)->velocity;
     glm::vec3 targetPosition = lastPosition + velocity * lookAhead;
@@ -39,28 +43,35 @@ void AttackGoal::update() {
     float opposite = toEnemy.y - 20;
     float hypotonus = glm::distance(lastPosition, me->position);
 
-    float angleToTarget = 90 + (atan2f(-directionToTarget.x, directionToTarget.z) * (180.0 / PI));
-    float angleY = asinf(opposite/hypotonus) * (180.0 / PI);
+    float yawAngle = 90 + (atan2(-directionToTarget.x, directionToTarget.z) * (180.0 / PI));
+    float pitchAngle = asinf(opposite/hypotonus) * (180.0 / PI);
     float deltaAngle = glm::dot(directionToTarget, facing);
 
-    cmd->angles[1] = angleToTarget;
-    cmd->angles[0] = -angleY;
+    cmd->angles[1] = yawAngle;
+    cmd->angles[0] = -pitchAngle;
     cmd->forwardMove = 0;
     cmd->buttons = 1;
+  }
+
+
+  for (const auto &g : goals) {
+    g->update();
   }
 }
 
 double AttackGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
+  PlayerInfo *me = owner->getMe();
   double desire = 0.0;
 
-  if (targetingSystem->isTargetPresent()) {
+  if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov()) {
     int id = targetingSystem->getTarget();
-    desire = memory->getTimeEntityHasBeenVisible(id);
-  }
+    glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
+    float dist = glm::distance(targetPosition, me->position);
 
-  cout << "Attack goal desire " << desire << endl;
+    desire = (memory->getTimeEntityHasBeenVisible(id)/dist) * 500.0;
+  }
 
   return desire;
 }

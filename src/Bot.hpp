@@ -48,7 +48,7 @@ private:
 
   float blood;
   float armor;
-  int challenge;
+  unsigned long challenge;
   int frame;
   int targetSlot;
   float elapsedTime;
@@ -84,6 +84,9 @@ private:
   vector<unique_ptr<Goal>> goals;
   int delay;
   double duration;
+  double timeChallengeSent;
+  bool requestChallenge;
+  float frameTime;
   void nullCommand(Command *cmd);
 public:
 
@@ -124,7 +127,9 @@ public:
   }
 
   Command* getCommand() {
-    return &cmds[frame];
+    Command * cmd = &cmds[frame];
+//    frame = (frame + 1) % UPDATE_BACKUP;
+    return cmd;
   }
 
   vector<glm::vec3> getWaypoints() const {

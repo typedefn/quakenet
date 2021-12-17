@@ -40,45 +40,42 @@ list<int> BotMemory::getListOfRecentlySensedEntities() const {
 
 void BotMemory::updateVision() {
 
-  auto rec = memoryMap.find(owner->getTargetId());
+  int target = owner->getTargetingSystem()->getTarget();
 
-  if ( rec == memoryMap.end()) {
-    MemoryRecord mem;
-    mem.lastVisible = owner->getTime();
-    mem.lastSensedPosition = owner->getPlayerById(owner->getTargetId())->position;
-    memoryMap[owner->getTargetId()] = mem;
+  auto rec = memoryMap.find(target);
+
+  if (rec == memoryMap.end()) {
+    MemoryRecord mem = { getLastSensedPosition(target), owner->getTime(), 0, false, false, 0, 0 };
+    memoryMap[target] = mem;
   }
 
+  for (auto &r : memoryMap) {
+    PlayerInfo *p = owner->getPlayerById(r.first);
+    PlayerInfo *m = owner->getMe();
 
-	for (auto &r : memoryMap) {
-		PlayerInfo *p = owner->getPlayerById(r.first);
-		PlayerInfo *m = owner->getMe();
+    if (m == p) {
+      continue;
+    }
 
-		if (m == p) {
-			continue;
-		}
+    if (!p->active) {
+      continue;
+    }
 
-		if (!p->active) {
-			continue;
-		}
+    MemoryRecord * mem = &(r.second);
 
-		MemoryRecord mem;
-
-		if (isWithinFov(r.first)) {
-			glm::vec3 targetPosition = getLastSensedPosition(r.first);
-			mem.lastSensedPosition = targetPosition;
-			double prevLast = r.second.lastVisible;
-			mem.lastVisible = owner->getTime();
-			mem.timeOpponentVisible += (r.second.lastVisible - prevLast);
-			mem.withinFov = true;
-		} else {
-			double last = r.second.lastTimeOutOfFov;
-			mem.lastTimeOutOfFov = owner->getTime();
-			mem.timeOutOfFov += (r.second.lastTimeOutOfFov - last);
-		}
-
-		memoryMap[r.first] = mem;
-	}
+    if (isWithinFov(r.first)) {
+      mem->lastSensedPosition = getLastSensedPosition(target);
+      mem->timeOpponentVisible += (owner->getTime() - mem->lastVisible);
+      mem->lastVisible = owner->getTime();
+      mem->timeOutOfFov = 0.0;
+      mem->withinFov = true;
+    } else {
+      mem->timeOutOfFov += (owner->getTime() - mem->lastTimeOutOfFov);
+      mem->lastTimeOutOfFov = owner->getTime();
+      mem->timeOpponentVisible = 0.0;
+      mem->withinFov = false;
+    }
+  }
 }
 
 bool BotMemory::isWithinFov(int id) {
@@ -93,12 +90,13 @@ bool BotMemory::isWithinFov(int id) {
   glm::vec3 directionToTarget = glm::normalize(targetPosition - me->position);
 
   float deltaAngle = glm::dot(directionToTarget, facing);
+
   return deltaAngle >= 0.01;
 }
 
 vec3 BotMemory::getLastSensedPosition(int id) {
-  PlayerInfo *p = owner->getPlayerById(id);
-  return p->position;
+    PlayerInfo *p = owner->getPlayerById(id);
+    return p->position;
 }
 
 double BotMemory::getTimeEntityHasBeenVisible(int id) const {
@@ -107,7 +105,7 @@ double BotMemory::getTimeEntityHasBeenVisible(int id) const {
     return memoryMap.at(id).timeOpponentVisible;
   }
 
-  return 0.0;
+  return 0;
 }
 
 double BotMemory::getTimeEntityHasBeenOutOfFov(int id) const {
@@ -116,6 +114,6 @@ double BotMemory::getTimeEntityHasBeenOutOfFov(int id) const {
     return memoryMap.at(id).timeOutOfFov;
   }
 
-  return 9999999999.0;
+  return 0.0;
 }
 

@@ -10,8 +10,8 @@
 
 Bot::Bot(char **argv) {
   challenge = 0;
-  blood = 0;
-  armor = 0;
+  blood = 100;
+  armor = 200;
   frame = 0;
   targetSlot = 0;
   elapsedTime = 0;
@@ -23,11 +23,13 @@ Bot::Bot(char **argv) {
   delay = 0;
   duration = 0;
   ipRecv = false;
+  requestChallenge = true;
   this->botMemory = make_unique<BotMemory>(this, 4.0);
   this->targetingSystem = make_unique<TargetingSystem>(this);
 
   goals.push_back(make_unique<PatrolGoal>(this));
   goals.push_back(make_unique<SeekGoal>(this));
+  goals.push_back(make_unique<AttackGoal>(this));
 
   for (int i = 0; i < MAX_CLIENTS; i++) {
     players[i].coords[0] = 0;
@@ -52,6 +54,8 @@ Bot::Bot(char **argv) {
   mapChecksums["areowalk"] = "-638279197";
   mapChecksums["ztndm3"] = "-1723650232";
   mapChecksums["bravado"] = "-1859843008";
+
+  frameTime = 0.05;
 }
 
 Bot::~Bot() {
@@ -126,6 +130,14 @@ void Bot::mainLoop() {
       updateDuration = getTime();
     }
 
+    if (requestChallenge) {
+      if ((getTime() - timeChallengeSent) > 10.0) {
+        LOG << "Resending challenge due to timeout";
+        timeChallengeSent = getTime();
+        getChallenge();
+      }
+    }
+
     timePassed = getTime();
   }
 }
@@ -174,7 +186,7 @@ void Bot::getChallenge() {
       case S2C_CHALLENGE: {
         char data[MAXLINE] = { 0 };
         char userInfo[MAX_INFO_STRING + 32] = { 0 };
-        challenge = atoi(msg.readString());
+        challenge = atol(msg.readString());
 
         for (;;) {
           c = msg.readLong();
@@ -186,7 +198,7 @@ void Bot::getChallenge() {
           msg.readLong();
         }
         strcpy(userInfo, "\\rate\\25000\\name\\krupt_drv\\msg\\1\\noaim\\1\\*client\\dumbo 1234\\*z_ext\\511");
-        snprintf(data, sizeof(data), "\xff\xff\xff\xff" "connect %i %i %i \"%s\"\n",
+        snprintf(data, sizeof(data), "\xff\xff\xff\xff" "connect %d %d %lu \"%s\"\n",
         PROTOCOL_VERSION, connection.getQport(), challenge, userInfo);
         Message s;
         s.writeString(data);
@@ -212,18 +224,6 @@ void Bot::getChallenge() {
     }
   }
 
-  msg.clear();
-  msg.writeByte(3);
-  msg.writeByte(18);
-  msg.writeByte(0);
-  msg.writeByte(0);
-  msg.writeByte(0);
-  msg.writeByte(0);
-  msg.writeByte('!');
-  msg.writeByte(0);
-  msg.writeByte(14);
-  outputQueue.push(msg);
-
 }
 
 void Bot::parseServerMessage(Message *message) {
@@ -233,6 +233,7 @@ void Bot::parseServerMessage(Message *message) {
   unsigned protover;
 
   while (1) {
+
     if (message->isBadRead()) {
       break;
     }
@@ -398,7 +399,6 @@ void Bot::parseServerMessage(Message *message) {
       int slot = message->readByte();
 
       if (slot >= MAX_CLIENTS) {
-        LOG << "setinfo > MAX_CLIENTS";
         break;
       }
 
@@ -416,8 +416,12 @@ void Bot::parseServerMessage(Message *message) {
       break;
     }
     case svc_updatefrags: {
-      message->readByte();
-      message->readShort();
+      int slot = message->readByte();
+      if (slot >= MAX_CLIENTS) {
+        break;
+      }
+
+      players[slot].frags = message->readShort();
       break;
     }
     case svc_updateping: {
@@ -477,7 +481,6 @@ void Bot::parseServerMessage(Message *message) {
 
       // Gamedir
       gameDir = message->readString();
-      LOG << "gamedir = '" << gameDir << "'";
       unsigned playerNum = message->readByte();
 
       if (playerNum & 128) {
@@ -491,7 +494,7 @@ void Bot::parseServerMessage(Message *message) {
       if (protover >= 25) {
         float gravity = message->readFloat();
         float stopspeed = message->readFloat();
-        float maxspeed = message->readFloat();
+        float maxSpeed = message->readFloat();
         float specMaxSpeed = message->readFloat();
         float accelerate = message->readFloat();
         float airAccelerate = message->readFloat();
@@ -515,7 +518,17 @@ void Bot::parseServerMessage(Message *message) {
       }
 
       std::size_t pos = line.find("cmd");
-
+//      stringstream cs;
+//      for(size_t i = 0; i < line.size(); i++) {
+//        char c = line.at(i);
+//        if (c >= 32 && c <= 126) {
+//               cs << (char) c;
+//             } else {
+//               cs << "[" << (short) c << "]";
+//             }
+//      }
+//
+//      LOG << "line = " << cs.str();
       if (tokens.size() > 1 && tokens[0] == "packet" && tokens[2] == "\"ip") {
         string realIpVal = tokens[4].substr(0, tokens[4].size() - 5);
         sendIp(realIpVal);
@@ -548,6 +561,7 @@ void Bot::parseServerMessage(Message *message) {
       } else if (tokens.size() > 2 && tokens[0] == "fullserverinfo") {
         mapName = Utility::findValue("map", line);
         LOG << "MAP NAME = " << mapName;
+        requestChallenge = false;
         currentState = Info;
       }
       break;
@@ -555,7 +569,6 @@ void Bot::parseServerMessage(Message *message) {
     case svc_updateuserinfo: {
       int slot = message->readByte();
       if (slot >= MAX_CLIENTS) {
-        LOG << "slot(" << slot << ") is greater than " << MAX_CLIENTS;
         break;
       }
 
@@ -602,7 +615,6 @@ void Bot::parseServerMessage(Message *message) {
       }
 
       vec3 position = vec3(players[num].coords[0], players[num].coords[2], players[num].coords[1]);
-      players[num].velocity = (position - players[num].position) * (float) getTime();
       players[num].position = position;
       players[num].time = getTime();
 
@@ -610,6 +622,13 @@ void Bot::parseServerMessage(Message *message) {
 
       if (flags & PF_MSEC) {
         byte msec = message->readByte();
+        if (num == targetSlot) {
+          frameTime = msec * 0.001;
+        }
+
+        if (frameTime > 0.1) {
+          frameTime = 0.1;
+        }
       }
 
       if (flags & PF_COMMAND) {
@@ -648,10 +667,26 @@ void Bot::parseServerMessage(Message *message) {
 
       for (int i = 0; i < 3; i++) {
         if (flags & (PF_VELOCITY1 << i)) {
-//					cout << "PF_VELOCITY" << i << "(" << num << ")" << "     = "
-          message->readShort();
+          short v = message->readShort();
+          if (i == 0) {
+            players[num].velocity.x = -v * frameTime;
+          } else if (i == 1) {
+            players[num].velocity.z = -v * frameTime;
+          } else if (i == 2) {
+            players[num].velocity.y = v * frameTime;
+          }
+
+//          LOG << "PF_VELOCITY" << i << "(" << num << ")" << "     = " << v * frameTime;
+        } else {
+          players[num].velocity[i] = 0;
         }
       }
+
+      players[num].speed = sqrt(players[num].velocity[0] * players[num].velocity[0] + players[num].velocity[1] * players[num].velocity[1] + players[num].velocity[2] * players[num].velocity[2]);
+
+//      for (int i = 0; i < 3; i++) {
+//        players[num].velocity[i] *= frameTime;
+//      }
 
       if (flags & PF_MODEL) {
 //				cout << "PF_MODEL(" << num << ")" << "         =  "
@@ -679,8 +714,8 @@ void Bot::parseServerMessage(Message *message) {
       break;
     }
     case svc_updatestatlong: {
-      message->readByte();
-      message->readLong();
+      byte b = message->readByte();
+      long l = message->readLong();
       break;
     }
     case svc_setangle: {
@@ -690,21 +725,32 @@ void Bot::parseServerMessage(Message *message) {
       break;
     }
     case svc_damage: {
-      armor = message->readByte();
-      blood = message->readByte();
+      int armor_ = message->readByte();
+      int blood_ = message->readByte();
       float coords[3];
-      float dotP = 0;
+      float distanceToMe;
+      float distanceToTarget;
 
       for (int i = 0; i < 3; i++) {
         coords[i] = message->readCoord();
-        dotP += coords[i] * coords[i];
       }
 
-      // For some reason when dotP is equal to 0, that means that the bot got hit by rocket, armor
-      // is the amount taken off of armor and blood is the amount taken out of health.
-      if (dotP <= 0) {
-        LOG << "svc_damage: ARMOR " << armor << " BLOOD = " << blood << " " << coords[0] << " " << coords[1] << " " << coords[2];
-      }
+      vec3 from(coords[0], coords[2], coords[1]);
+
+      distanceToMe = distance(from, me->position);
+      distanceToTarget = distance(from, players[targetSlot].position);
+
+
+//      LOG << "svc_damage coords " << coords[0] << " " << coords[1] << " " << coords[2];
+//      LOG << "        me coords " << me->position.x << " " << me->position.z << " " << me->position.y;
+//      LOG << "    target coords " << players[targetSlot].position.x << " " << players[targetSlot].position.z << " " << players[targetSlot].position.y;
+//      LOG << "distanceToMe " << distanceToMe << " distanceToTarget " << distanceToTarget << " b: " << blood_  << " a: " << armor_;
+//      if (fabs(distanceToMe) < 10) {
+//        armor -= armor_;
+//        blood -= blood_;
+//        LOG << "Took a hit armor = " << armor << " health = " << blood;
+//      }
+
       break;
     }
     case svc_sound: {
@@ -729,9 +775,12 @@ void Bot::sendIp(const string &realIp) {
   char data[MAXLINE];
   snprintf(data, sizeof(data), "\xff\xff\xff\xff" "ip 0 %s\n", realIp.c_str());
 
+  timeChallengeSent = getTime();
+
   Message s;
+  s.setConnectionless(true);
   s.writeString(data);
-  connection.sendConnectionless(s);
+  outputQueue.push(s);
 }
 
 void Bot::sendExtensions() {
@@ -907,13 +956,14 @@ void Bot::createCommand(Message *s) {
 void Bot::think() {
   static double extramsec = 0;
   LOG << "Thinking thread launched!";
+  string previousDescription;
 
   for (int i = frame; i < UPDATE_BACKUP; i++) {
     nullCommand(&cmds[i]);
   }
 
   while (true) {
-    usleep(10000);
+    usleep(5000);
     extramsec += 0.5 * 1000;
     int ms = extramsec;
 
@@ -928,8 +978,6 @@ void Bot::think() {
     if (me != nullptr) {
 
       extramsec += 0.01;
-
-      ActionType at = (ActionType) (rand() % 5);
 
       botMemory->updateVision();
       targetingSystem->update();
@@ -948,6 +996,12 @@ void Bot::think() {
 
       if (goal != nullptr) {
         goal->update();
+        string description = goal->description();
+        if (previousDescription != description) {
+          LOG << "Bot is " << description << " maxScore " << maxScore;
+
+        }
+        previousDescription = description;
       }
 
     }
@@ -958,6 +1012,7 @@ void Bot::think() {
       respawnTimer += getTime();
       if (respawnTimer > 3) {
         blood = 100;
+        armor = 200;
         respawnTimer = 0;
       }
     }

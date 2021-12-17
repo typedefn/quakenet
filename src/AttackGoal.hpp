@@ -9,7 +9,7 @@
 #define ATTACKGOAL_HPP_
 #include "Common.hpp"
 #include "Goal.hpp"
-
+#include "StrafeGoal.hpp"
 class Bot;
 
 class AttackGoal : public Goal {
@@ -18,7 +18,11 @@ public:
   virtual ~AttackGoal();
   void update();
   double calculateDesirability();
-
+  string description() const {
+    return "Attacking";
+  }
+private:
+  vector<unique_ptr<Goal>> goals;
 };
 
 #endif /* ATTACKGOAL_HPP_ */
