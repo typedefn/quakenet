@@ -99,11 +99,12 @@ public:
 
   int getStat(int stat) {
     int value = 0;
-    statLock.lock();
+
     if (stat >= MAX_CL_STATS) {
       return 0;
     }
 
+    statLock.lock();
     value = stats[stat];
     statLock.unlock();
     return value;
