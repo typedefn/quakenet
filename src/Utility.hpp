@@ -56,9 +56,15 @@ public:
   static float littleFloat(float l);
 
 
+  static short shortSwap (short s);
+  static int longSwap (int l);
+  static float floatSwap (float f);
+
+  static std::vector<std::string> split(std::string str, char delimiter);
 private:
 
 };
+
 
 #endif /* UTILITY_HPP */
 

@@ -59,7 +59,7 @@ byte Utility::crcByte(byte *base, int length, int sequence) {
 
 string Utility::findValue(const string &key, const string &map) {
   stringstream ss;
-  ss << "\\" << key << "\\";
+  ss << "\\" << key;
 
   size_t found = map.find(ss.str());
   string value;
@@ -75,8 +75,7 @@ string Utility::findValue(const string &key, const string &map) {
   value = map.substr(startPosition, endPosition);
 
   // Reached end of string.
-  if (value.size() > 2 && value.at(value.size() - 2) == '"') {
-    value.pop_back();
+  if (value.size() > 2 && value.at(value.size() - 1) == '"') {
     value.pop_back();
   }
 
@@ -217,3 +216,56 @@ float Utility::littleFloat(float l) {
   return l;
 }
 
+
+short Utility::shortSwap (short s)
+{
+        union
+        {
+                short   s;
+                byte    b[2];
+        } dat1, dat2;
+        dat1.s = s;
+        dat2.b[0] = dat1.b[1];
+        dat2.b[1] = dat1.b[0];
+        return dat2.s;
+}
+
+int Utility::longSwap (int l)
+{
+        union
+        {
+                int             l;
+                byte    b[4];
+        } dat1, dat2;
+        dat1.l = l;
+        dat2.b[0] = dat1.b[3];
+        dat2.b[1] = dat1.b[2];
+        dat2.b[2] = dat1.b[1];
+        dat2.b[3] = dat1.b[0];
+        return dat2.l;
+}
+
+float Utility::floatSwap (float f)
+{
+        union
+        {
+                float   f;
+                byte    b[4];
+        } dat1, dat2;
+        dat1.f = f;
+        dat2.b[0] = dat1.b[3];
+        dat2.b[1] = dat1.b[2];
+        dat2.b[2] = dat1.b[1];
+        dat2.b[3] = dat1.b[0];
+        return dat2.f;
+}
+
+std::vector<std::string> Utility::split(std::string str, char delimiter = ' ') {
+  std::vector<std::string> strings;
+  std::stringstream ss(str);
+  std::string s;
+  while (getline(ss, s, delimiter)) {
+    strings.push_back(s);
+  }
+  return strings;
+}

@@ -50,7 +50,7 @@ void BotMemory::updateVision() {
   }
 
   for (auto &r : memoryMap) {
-    PlayerInfo *p = owner->getPlayerById(r.first);
+    PlayerInfo *p = owner->getPlayerBySlot(r.first);
     PlayerInfo *m = owner->getMe();
 
     if (m == p) {
@@ -61,7 +61,7 @@ void BotMemory::updateVision() {
       continue;
     }
 
-    MemoryRecord * mem = &(r.second);
+    MemoryRecord *mem = &(r.second);
 
     if (isWithinFov(r.first)) {
       mem->lastSensedPosition = getLastSensedPosition(target);
@@ -80,23 +80,26 @@ void BotMemory::updateVision() {
 
 bool BotMemory::isWithinFov(int id) {
   PlayerInfo *me = owner->getMe();
-
+  bool inFov = false;
   if (me == nullptr) {
     return false;
   }
+  vec3 position = me->position;
 
-  vec3 t = owner->getTargetingSystem()->getLastRecordedPosition();
-  vec3 p = me->position;
-
-  vec3 t1 = normalize(t - me->position);
-  float d = dot(t1, me->direction);
-
-  return d > 0.0;
+  vec3 target = owner->getTargetingSystem()->getLastRecordedPosition();
+  vec3 facing = cross(normalize(me->direction), vec3(0, 1, 0));
+  double fov = 90;
+  vec3 toTarget = normalize(target - position);
+  float d = dot(facing, toTarget);
+  double c = cos(fov / 2.0);
+  inFov = (d > c);
+//  LOG << "in fov = " << inFov << " c " << c << " d " << d << " x " << facing.x << " y " << facing.y << " z " << facing.z;
+  return inFov;
 }
 
 vec3 BotMemory::getLastSensedPosition(int id) {
-    PlayerInfo *p = owner->getPlayerById(id);
-    return p->position;
+  PlayerInfo *p = owner->getPlayerBySlot(id);
+  return p->position;
 }
 
 double BotMemory::getTimeEntityHasBeenVisible(int id) const {

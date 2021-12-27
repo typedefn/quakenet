@@ -42,9 +42,6 @@
 using namespace std;
 using namespace glm;
 
-//#define LOG_RECV_TRAFFIC 1
-//#define LOG_SEND_TRAFFIC 1
-
 
 #endif /* COMMON_HPP */
 

@@ -10,6 +10,10 @@
 #define CONNECTION_HPP
 #include "Common.hpp"
 #include "Protocol.hpp"
+#include "Utility.hpp"
+
+//#define LOG_RECV_TRAFFIC 1
+//#define LOG_SEND_TRAFFIC 1
 
 class Message {
 public:
@@ -22,10 +26,15 @@ public:
 
   unsigned readLong();
   int readByte();
+  int readChar();
   int readShort();
   char *readString();
   float readFloat();
+  float readFloatCoord();
   float readCoord();
+  float readAngle();
+  void readData(void * data, int len);
+  float readAngle16();
 
   void writeAngle16(float f);
   void writeChar(int c);
@@ -82,6 +91,17 @@ public:
     return connectionless;
   }
   
+  bool hasMore() {
+    return msgReadCount <  curSize;
+  }
+
+  void setCommand(bool value) {
+    command = value;
+  }
+
+  bool isCommand() {
+    return command;
+  }
   double delay;
 private:
   int msgReadCount;
@@ -93,18 +113,18 @@ private:
   int curSize;
   bool connectionless;
   friend class Connection;
+  bool command;
 };
 
 class Connection {
 public:
   Connection();
-  Connection(const Connection& orig);
   virtual ~Connection();
 
   void connect(char **argv);
   int send(Message msg);
   int sendConnectionless(Message msg);
-  
+  void close();
   bool recv(Message * msg, bool block);
   bool process(Message *msg);
   int getQport() const {
@@ -124,6 +144,11 @@ public:
   }
 
   void writeHeader(Message *msg);
+
+  int getIncomingSequence() const {
+    return incomingSequence;
+  }
+
 private:
 
   int incomingSequence;

@@ -52,8 +52,6 @@ void SeekGoal::update() {
     }
   }
 
-
-  completed = true;
 }
 
 double SeekGoal::calculateDesirability() {

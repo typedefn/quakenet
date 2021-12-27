@@ -12,22 +12,17 @@ class Bot;
 
 class Goal {
 public:
-  Goal() {};
+  Goal() { sign = 0; owner = nullptr; currentTime = 0; totalTime = 0; };
   virtual ~Goal() {}
   virtual void update() = 0;
   virtual double calculateDesirability() = 0;
   virtual string description() const = 0;
-
-  bool isCompleted() {
-    return completed;
-  }
 
 protected:
   Bot *owner;
   double totalTime;
   double currentTime;
   int sign;
-  bool completed;
 
   vector<unique_ptr<Goal>> goals;
 };

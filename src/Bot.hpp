@@ -7,26 +7,27 @@
 
 #ifndef BOT_HPP
 #define BOT_HPP
-#include "Protocol.hpp"
-#include "Common.hpp"
-#include "Connection.hpp"
-#include "Utility.hpp"
-#include "Genome.hpp"
-#include "NeuralNet.hpp"
-#include "Entity.hpp"
-#include "TsQueue.hpp"
-#include "BotMemory.hpp"
-#include "TargetingSystem.hpp"
-#include "Logger.hpp"
-#include "AttackGoal.hpp"
-#include "PatrolGoal.hpp"
-#include "Goal.hpp"
-#include "SeekGoal.hpp"
+#include <Protocol.hpp>
+#include <Common.hpp>
+#include <Connection.hpp>
+#include <Utility.hpp>
+#include <Genome.hpp>
+#include <NeuralNet.hpp>
+#include <Entity.hpp>
+#include <TsQueue.hpp>
+#include <BotMemory.hpp>
+#include <TargetingSystem.hpp>
+#include <Logger.hpp>
+#include <AttackGoal.hpp>
+#include <PatrolGoal.hpp>
+#include <Goal.hpp>
+#include <SeekGoal.hpp>
+#include <MessageTypes.hpp>
 
 #define MAX_GENOMES 127
 
 enum HandShakeState {
-  None, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done
+  None, New, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done
 };
 class Bot {
 public:
@@ -35,32 +36,25 @@ public:
 
   void mainLoop();
 
-  PlayerInfo* getPlayerById(size_t id);
+  PlayerInfo* getPlayerBySlot(size_t id);
   PlayerInfo* getMe();
 
 private:
   HandShakeState currentState;
   HandShakeState previousState;
 
-  PlayerInfo *me;
   PlayerInfo players[MAX_CLIENTS];
   char **argv;
 
-  float blood;
-  float armor;
-  unsigned long challenge;
+  int challenge;
   int frame;
   int targetSlot;
-  float elapsedTime;
-  float totalTime;
-  int newCount;
-  bool ipRecv;
+
   long spawnCount;
-  string spawnCmd;
+
   string mapName;
   string gameDir;
 
-  Command cmd;
   Command nullcmd;
   Command cmds[UPDATE_BACKUP];
 
@@ -71,31 +65,37 @@ private:
 
   map<string, vector<glm::vec3>> waypoints;
 
-  vector<vector<double>> memory;
   std::thread thinker;
-  Message lastMessage;
+
   unique_ptr<BotMemory> botMemory;
   unique_ptr<TargetingSystem> targetingSystem;
 
   map<string, string> mapChecksums;
-
-  double respawnTimer;
-
   vector<unique_ptr<Goal>> goals;
-  int delay;
-  double duration;
-  double timeChallengeSent;
-  bool requestChallenge;
-  float frameTime;
 
-  int   stats[MAX_CL_STATS];
+  int delay;
+
+  double timeChallengeSent;
+
+  int stats[MAX_CL_STATS];
 
   void nullCommand(Command *cmd);
 
   mutex infoLock;
   mutex statLock;
   bool respawned;
+
+  map<byte, unique_ptr<ServerMessage>> serverMessages;
+  unsigned protoVer;
+  int mySlot;
+  bool gotChallenge;
+
+  int validSequence;
 public:
+
+  string getMapCheckSum(string key) {
+    return mapChecksums[key];
+  }
 
   int getStat(int stat) {
     int value = 0;
@@ -133,13 +133,12 @@ public:
   }
 
   int getTargetId() {
-    if (targetSlot > MAX_CLIENTS) {
+    if (targetSlot >= MAX_CLIENTS) {
       LOG << "getTargetId error " << targetSlot << " > " << MAX_CLIENTS;
-      return 0;
+      return -1;
     }
     return targetSlot;
   }
-
   double getTime();
   void getChallenge();
   void parseServerMessage(Message *message);
@@ -152,20 +151,25 @@ public:
   void requestSpawn();
   void requestSpawn2();
   void sendImpulse(byte impulse, long delay);
-  void sendBegin();
   void sendDisableChat();
   void createCommand(Message *s);
   void think();
   void requestStringCommand(string value);
   void requestStringCommand(string value, double delay);
-  void parseStatic(Message *msg);
+  void parseStatic(Message *msg, bool extended);
+  void parseBaseline(Message *msg);
+  void parseBeam(Message *msg, int type);
+  void parseProjectiles(Message *msg, bool indexed);
+  void parsePacketEntities(Message *msg, bool delta);
+  void parseDelta(Message *msg, byte bits);
+  void parseBaseline2(Message *msg);
 
   TargetingSystem* getTargetingSystem() {
     return targetingSystem.get();
   }
 
   Command* getCommand() {
-    Command * cmd = &cmds[frame];
+    Command *cmd = &cmds[frame];
     return cmd;
   }
 
@@ -177,7 +181,54 @@ public:
   }
 
   void setRespawned(bool value) {
-    respawned = value;
+    this->respawned = value;
+  }
+
+  void setSpawnCount(long v) {
+    this->spawnCount = v;
+  }
+
+  void setGameDir(const string &v) {
+    this->gameDir = v;
+  }
+
+  string getGameDir() {
+    return this->gameDir;
+  }
+
+  void setMapName(const string &v) {
+    this->mapName = v;
+  }
+
+  void setProtoVer(unsigned v) {
+    this->protoVer = v;
+  }
+
+  unsigned getProtoVer() {
+    return this->protoVer;
+  }
+
+  void setState(HandShakeState state) {
+    this->currentState = state;
+  }
+
+  HandShakeState getState() {
+    return currentState;
+  }
+
+  void setTargetSlot(int targetSlot) {
+    if (targetSlot == mySlot) {
+      return;
+    }
+    this->targetSlot = targetSlot;
+  }
+
+  void setMySlot(int mySlot) {
+    if (this->mySlot == -1) {
+      this->mySlot = mySlot;
+    } else {
+      LOG << "Warning: something is trying to set myslot to " << mySlot << " current bot slot is " << this->mySlot;
+    }
   }
 };
 

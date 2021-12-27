@@ -19,13 +19,14 @@ struct PlayerInfo {
   int slot;
   float coords[3];
   int frame;
-  short flags;
+  int flags;
   bool active;
   vec3 velocity;
   vec3 position;
   double time;
   float speed;
   vec3 direction;
+  float angles[3];
 };
 
 #endif /* ENTITY_HPP_ */

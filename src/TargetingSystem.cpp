@@ -26,7 +26,7 @@ void TargetingSystem::update() {
 			owner->getBotMemory()->getListOfRecentlySensedEntities();
 
 	for (const auto id : entities) {
-		PlayerInfo *p = owner->getPlayerById(id);
+		PlayerInfo *p = owner->getPlayerBySlot(id);
 		PlayerInfo *m = owner->getMe();
 
 		if (p == m) {

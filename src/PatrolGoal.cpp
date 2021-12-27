@@ -25,7 +25,6 @@ void PatrolGoal::update() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
-  Command *cmd = owner->getCommand();
 
   double previousTime = currentTime;
   currentTime = owner->getTime();
@@ -34,27 +33,30 @@ void PatrolGoal::update() {
   vector<vec3> waypoints = owner->getWaypoints()["start"];
 
   static int wi = 0;
-  const float maxDistance = 150.0;
+  const float maxDistance = 200.0;
   glm::vec3 targetPosition(waypoints.at(wi).x, me->position.y, waypoints.at(wi).z);
 
   dist = glm::distance(targetPosition, me->position);
   glm::vec3 dir = targetPosition - me->position;
-  cmd->angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
+  float yaw = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
+
+  Command * command = owner->getCommand();
 
   if (dist <= maxDistance) {
-
-    if (wi == waypoints.size() - 1) {
-      completed = true;
-    }
-
+    owner->setRespawned(false);
     wi = (wi + 1) % waypoints.size();
-    totalTime = 0;
-    cmd->forwardMove = 0;
+    command->forwardMove = 0;
   } else {
-    cmd->forwardMove = 500;
+    double forwardSpeed = 2 * dist;
+    command->forwardMove = glm::min(forwardSpeed, 250.0);
+    command->angles[1] = yaw;
   }
 
-  owner->setRespawned(false);
+  if (totalTime > 1) {
+    LOG << " moving " << " dist " << dist << " forward = " << command->forwardMove;
+    totalTime = 0;
+  }
+
 }
 
 double PatrolGoal::calculateDesirability() {
