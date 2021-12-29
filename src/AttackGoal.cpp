@@ -13,6 +13,7 @@ AttackGoal::AttackGoal(Bot *owner) {
   // TODO Auto-generated constructor stub
   this->owner = owner;
   goals.push_back(make_unique<StrafeGoal>(owner));
+  goals.push_back(make_unique<SeekGoal>(owner));
   totalTime = 0.0;
   sign = 0;
   currentTime = 0;
@@ -50,28 +51,44 @@ void AttackGoal::update() {
     currentTime = owner->getTime();
 
     totalTime += (currentTime - previousTime);
-
-    LOG << " attacking enemy in slot " << slot;
     if (totalTime > 3) {
       sign = Utility::getRandomNormal();
       totalTime = 0;
     }
-    Command * command = owner->getCommand();
-    command->buttons = 1;
+
+    size_t frame = (owner->getFrame()) % UPDATE_BACKUP;
+
+    Command * command = &owner->getCommands()[frame];
+    command->buttons |= 1;
+//    command->buttons |= (Utility::getRandomNormal() * 2);
     command->angles[0] = -pitchAngle;
     command->angles[1] = yawAngle;
+
+
+
+    double maxDesire = 2;
+    Goal * goal = nullptr;
+    for (const auto &g : goals) {
+      double currentDesire = g->calculateDesirability();
+
+      if (currentDesire > maxDesire) {
+        maxDesire = currentDesire;
+        goal = g.get();
+      }
+    }
+
+    if (goal != nullptr) {
+      goal->update();
+    }
   }
 
-//  for (const auto &g : goals) {
-//    g->update();
-//  }
 }
 
 double AttackGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
-  double desire = 2.0;
+  double desire = 1.0;
   double tweaker = 1.0;
 
   if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov()) {

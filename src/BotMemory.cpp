@@ -42,28 +42,22 @@ void BotMemory::updateVision() {
 
   int target = owner->getTargetingSystem()->getTarget();
 
-  auto rec = memoryMap.find(target);
+  PlayerInfo *m = owner->getMe();
 
-  if (rec == memoryMap.end()) {
-    MemoryRecord mem = { getLastSensedPosition(target), owner->getTime(), 0, false, false, 0, 0 };
-    memoryMap[target] = mem;
-  }
-
-  for (auto &r : memoryMap) {
-    PlayerInfo *p = owner->getPlayerBySlot(r.first);
-    PlayerInfo *m = owner->getMe();
-
-    if (m == p) {
+  for (size_t num = 0; num < MAX_CLIENTS; num++) {
+    PlayerInfo *pi = owner->getPlayerBySlot(num);
+    if (!pi->active) {
       continue;
     }
 
-    if (!p->active) {
+    if (num == m->slot) {
       continue;
     }
 
-    MemoryRecord *mem = &(r.second);
+    MemoryRecord m;
+    MemoryRecord * mem = &m;
 
-    if (isWithinFov(r.first)) {
+    if (isWithinFov(num)) {
       mem->lastSensedPosition = getLastSensedPosition(target);
       mem->timeOpponentVisible += (owner->getTime() - mem->lastVisible);
       mem->lastVisible = owner->getTime();
@@ -75,7 +69,10 @@ void BotMemory::updateVision() {
       mem->timeOpponentVisible = 0.0;
       mem->withinFov = false;
     }
+
+    memoryMap[num] = m;
   }
+
 }
 
 bool BotMemory::isWithinFov(int id) {
@@ -87,13 +84,12 @@ bool BotMemory::isWithinFov(int id) {
   vec3 position = me->position;
 
   vec3 target = owner->getTargetingSystem()->getLastRecordedPosition();
-  vec3 facing = cross(normalize(me->direction), vec3(0, 1, 0));
+  vec3 facing = normalize(me->direction);
   double fov = 90;
   vec3 toTarget = normalize(target - position);
   float d = dot(facing, toTarget);
   double c = cos(fov / 2.0);
-  inFov = (d > c);
-//  LOG << "in fov = " << inFov << " c " << c << " d " << d << " x " << facing.x << " y " << facing.y << " z " << facing.z;
+  inFov = (d >= 0.1);
   return inFov;
 }
 

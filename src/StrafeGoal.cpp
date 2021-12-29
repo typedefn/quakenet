@@ -26,7 +26,6 @@ void StrafeGoal::update() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
-  Command *cmd = owner->getCommand();
 
   double previousTime = currentTime;
   currentTime = owner->getTime();
@@ -37,7 +36,10 @@ void StrafeGoal::update() {
     sign = Utility::getRandomNormal();
     totalTime = 0;
   }
-  cmd->sideMove = sign * 250;
+
+  size_t frame = (owner->getFrame()) % UPDATE_BACKUP;
+  Command *command = &owner->getCommands()[frame];
+  command->sideMove = sign * 250;
 
 }
 

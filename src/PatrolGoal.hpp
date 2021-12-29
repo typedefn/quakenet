@@ -25,6 +25,8 @@ public:
 private:
   double previousDist;
   float dist;
+  int frame;
+  int prevFrame;
 };
 
 #endif /* PATROLGOAL_HPP_ */

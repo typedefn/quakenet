@@ -15,6 +15,10 @@ PatrolGoal::PatrolGoal(Bot *owner) {
   totalTime = 0;
   previousDist = 0;
   dist = 0;
+  frame = owner->getFrame();
+  prevFrame = 0;
+
+  Command *command = owner->getCommand();
 }
 
 PatrolGoal::~PatrolGoal() {
@@ -40,33 +44,27 @@ void PatrolGoal::update() {
   glm::vec3 dir = targetPosition - me->position;
   float yaw = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
 
-  Command * command = owner->getCommand();
+  Command *commands = owner->getCommands();
+  int frame = (owner->getFrame() + 2) % UPDATE_BACKUP;
+  commands[frame].forwardMove = 0;
 
   if (dist <= maxDistance) {
-    owner->setRespawned(false);
-    wi = (wi + 1) % waypoints.size();
-    command->forwardMove = 0;
+    commands[frame].forwardMove = 0;
   } else {
-    double forwardSpeed = 2 * dist;
-    command->forwardMove = glm::min(forwardSpeed, 250.0);
-    command->angles[1] = yaw;
+    commands[frame].forwardMove = 280;
   }
 
-  if (totalTime > 1) {
-    LOG << " moving " << " dist " << dist << " forward = " << command->forwardMove;
-    totalTime = 0;
-  }
-
+  commands[frame].buttons = 0;
+  commands[frame].angles[1] = yaw;
 }
 
 double PatrolGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
-  double desire = 0.001;
+  double desire = .01;
   double tweak = 1.0;
-  if (owner->getRespawned()) {
+  if (!targetingSystem->isTargetPresent() && !targetingSystem->isTargetWithinFov()) {
     desire = tweak * owner->getHealth();
   }
-
   return desire;
 }

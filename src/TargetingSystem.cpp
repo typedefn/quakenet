@@ -20,16 +20,15 @@ TargetingSystem::~TargetingSystem() {
 
 void TargetingSystem::update() {
 	double closestDistanceSoFar = 999999999.0;
-	currentTarget = owner->getTargetId();
 
 	list<int> entities =
 			owner->getBotMemory()->getListOfRecentlySensedEntities();
+  PlayerInfo *m = owner->getMe();
 
 	for (const auto id : entities) {
 		PlayerInfo *p = owner->getPlayerBySlot(id);
-		PlayerInfo *m = owner->getMe();
 
-		if (p == m) {
+		if (m->slot == id) {
 			continue;
 		}
 
@@ -39,11 +38,12 @@ void TargetingSystem::update() {
 
 		float dist = glm::distance(owner->getBotMemory()->getLastSensedPosition(id), m->position);
 
-		if (dist < closestDistanceSoFar && dist <= 800) {
+		if (dist < closestDistanceSoFar && dist <= 750) {
 			closestDistanceSoFar = dist;
 			currentTarget = id;
 		}
 	}
+
 }
 
 bool TargetingSystem::isTargetPresent() const {

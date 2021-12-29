@@ -37,7 +37,7 @@ void UpdateUserInfoMessage::read(Message *message) {
   PlayerInfo *pi = bot->getPlayerBySlot(slot);
   if (pi != nullptr && userId != 0 && !name.empty()) {
     pi->active = true;
-    bot->setTargetSlot(slot);
+    pi->slot = slot;
     LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " " << value << " " << name;
   }
 

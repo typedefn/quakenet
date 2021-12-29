@@ -17,10 +17,10 @@ Bot::Bot(char **argv) {
   targetSlot = -1;
   mySlot = -1;
   previousState = currentState = None;
-  this->botMemory = make_unique<BotMemory>(this, 4.0);
+  this->botMemory = make_unique<BotMemory>(this, 2.0);
   this->targetingSystem = make_unique<TargetingSystem>(this);
 
-  goals.push_back(make_unique<PatrolGoal>(this));
+//  goals.push_back(make_unique<PatrolGoal>(this));
 //  goals.push_back(make_unique<SeekGoal>(this));
   goals.push_back(make_unique<AttackGoal>(this));
 
@@ -63,12 +63,12 @@ Bot::Bot(char **argv) {
   for (size_t i = 0; i < MAX_CL_STATS; i++) {
     setStat(i, 0);
   }
-  respawned = true;
+
   spawnCount = 0;
   timeChallengeSent = getTime();
 
   serverMessages[svc_serverdata] = make_unique<ServerDataMessage>(this);
-//  serverMessages[svc_packetentities] = make_unique<PacketEntitiesMessage>(this);
+  serverMessages[svc_packetentities] = make_unique<PacketEntitiesMessage>(this);
   serverMessages[svc_modellist] = make_unique<ModelListMessage>(this);
   serverMessages[svc_download] = make_unique<DownloadMessage>(this);
   serverMessages[svc_spawnstaticsound] = make_unique<SpawnStaticSoundMessage>(this);
@@ -81,6 +81,7 @@ Bot::Bot(char **argv) {
   serverMessages[svc_print] = make_unique<PrintMessage>(this);
   gotChallenge = false;
   validSequence = 0;
+  goal = nullptr;
 }
 
 Bot::~Bot() {
@@ -160,13 +161,9 @@ void Bot::mainLoop() {
       currentState = None;
     }
 
-//    if (requestChallenge) {
-//      if ((getTime() - timeChallengeSent) > 16.0) {
-//        LOG << "Resending extension due to timeout";
-//        timeChallengeSent = getTime();
-//        sendExtensions();
-//      }
-//    }
+    if (connection.hasJoinedGame()) {
+      think();
+    }
 
     // Prevent CPU hogging.
     usleep(delay);
@@ -263,8 +260,6 @@ void Bot::getChallenge() {
         break;
       }
       }
-
-//      sendImpulse(0, 2);
     }
   }
 
@@ -277,18 +272,13 @@ void Bot::parseServerMessage(Message *message) {
   while (1) {
 
     if (message->isBadRead()) {
-//      LOG << "bad read " << message->getReadCount() << " / " << message->getCurrentSize() << " / " << message->getSize();
       break;
     }
 
-//    msgSvcStart = message->getReadCount();
-
     cmd = message->readByte();
 
-//
     if (cmd <= 0) {
       continue;
-//      break;
     }
 
     auto pos = serverMessages.find(cmd);
@@ -530,10 +520,10 @@ void Bot::parseServerMessage(Message *message) {
       int count = message->readByte();
       break;
     }
-//    case svc_deltapacketentities: {
-//      parsePacketEntities(message, true);
-//      break;
-//    }
+    case svc_deltapacketentities: {
+      parsePacketEntities(message, true);
+      break;
+    }
 //    case svc_qizmovoice: {
 //      int i;
 //      message->readByte();
@@ -546,7 +536,6 @@ void Bot::parseServerMessage(Message *message) {
 //    }
 
     default: {
-//      message->incReadCount();
       break;
     }
     }
@@ -578,7 +567,6 @@ void Bot::sendNew() {
   s.writeByte(clc_stringcmd);
   s.writeString("new");
   s.writeByte(0);
-//  createCommand(&s);
   outputQueue.push(s);
 }
 
@@ -611,23 +599,17 @@ void Bot::updateState() {
     ss << "begin " << spawnCount;
     requestStringCommand(ss.str().c_str());
     requestStringCommand("setinfo \"chat\" \"\"", 2);
-//    requestStringCommand("setinfo \"chat\" \"\"", 3);
     currentState = None;
     break;
   }
   case JoinTeam: {
     // Assuming it is fortress gamedir now.
     sendImpulse(1, 2);
-//    sleep(2);
-
     currentState = None;
     break;
   }
   case SelectClass: {
     sendImpulse(3, 2);
-//    sendImpulse(3, 2);
-//    sendImpulse(0, 2);
-//    currentState = None;
     break;
   }
   case DisableChat:
@@ -637,10 +619,9 @@ void Bot::updateState() {
     requestStringCommand("setinfo \"bottomcolor\" \"13\"", 2);
     requestStringCommand("setinfo \"team\" \"blue\"", 0);
     requestStringCommand("setinfo \"skin\" \"tf_sold\"", 2);
-    delay = 100;
+    delay = 20;
     currentState = None;
     connection.handshakeComplete();
-    thinker = std::thread(&Bot::think, this);
     break;
   default:
     break;
@@ -673,12 +654,11 @@ void Bot::setInfo() {
   s.writeString(ss.str().c_str());
   s.writeByte(0);
   outputQueue.push(s);
-//  sendImpulse(0, 1);
 }
 
 void Bot::sendImpulse(byte impulse, long delay) {
   for (int i = 0; i < UPDATE_BACKUP; i++) {
-    cmds[frame].msec = rand() % 200;
+    cmds[frame].msec = 100;
     cmds[frame].impulse = impulse;
     frame = (frame + 1) % UPDATE_BACKUP;
   }
@@ -700,6 +680,7 @@ void Bot::createCommand(Message *s) {
   s->writeByte(clc_move);
   int crcIndex = s->getSize();
   s->writeByte(0);
+  // packet loss
   s->writeByte(0);
 
   int i = (connection.getOutgoingSequence() - 2) & UPDATE_MASK;
@@ -735,103 +716,96 @@ void Bot::createCommand(Message *s) {
     validSequence = 0;
   }
 
-//  if (deltaSequence) {
-//    s->writeByte(clc_delta);
-//    s->writeByte(deltaSequence & 255);
-//  }
-
-  stringstream ss;
-  vector<byte> bytes = s->getData();
-  for (int i = 0; i < bytes.size(); i++) {
-    ss << bytes.at(i);
+  if (validSequence) {
+    s->writeByte(clc_delta);
+    s->writeByte(validSequence & 255);
   }
 }
 
 void Bot::think() {
+  static string previousDescription;
   static double extramsec = 0;
-  LOG << "Thinking thread launched!";
-  string previousDescription;
+  static double previousTime = 0;
+  static double counter = 0;
+  static double currentTime = 0;
 
-  double previousTime = 0;
-  double counter = 0;
-  double currentTime = 0;
+  static double previousRespawnTime = 0;
+  static double respawnCounter = 0;
+  static double currentRespawnTime = 0;
 
-//  for (int i = 0; i < UPDATE_BACKUP; i++) {
-//    nullCommand(&cmds[i]);
-//  }
+  extramsec += 0.5 * 1000;
 
-  while (true) {
-    usleep(100);
+  int ms = extramsec;
 
-    extramsec += 0.5 * 1000;
-    int ms = extramsec;
+  extramsec -= ms;
 
-    extramsec -= ms;
+  if (ms > 250) {
+    ms = 100;
+  }
 
-    if (ms > 250) {
-      ms = 100;
+  extramsec += 0.01;
+
+  PlayerInfo *me = getPlayerBySlot(mySlot);
+
+  if (me == nullptr) {
+    LOG << " me == nullptr";
+    return;
+  }
+
+  frame = (connection.getOutgoingSequence() & UPDATE_MASK);
+
+  Command *command = &cmds[frame];
+
+  command->msec = 50;
+
+  previousTime = currentTime;
+  currentTime = getTime();
+  counter += (currentTime - previousTime);
+
+  previousRespawnTime = currentRespawnTime;
+  currentRespawnTime = getTime();
+  respawnCounter += (currentRespawnTime - previousRespawnTime);
+
+  botMemory->updateVision();
+  targetingSystem->update();
+
+  if (respawnCounter > 2) {
+    LOG << "HEALTH: " << getHealth();
+    respawnCounter = 0;
+  }
+
+  if (getHealth() > 0) {
+    double maxScore = -1.0;
+    for (const auto &g : goals) {
+      double desire = g->calculateDesirability();
+      if (desire > maxScore) {
+        maxScore = desire;
+        goal = g.get();
+      }
     }
 
-    PlayerInfo *me = getPlayerBySlot(mySlot);
-
-    if (me == nullptr) {
-      LOG << " me == nullptr";
-      continue;
-    }
-
-//    nullCommand(&cmds[frame]);
-
-    extramsec += 0.01;
-
-    Goal *goal = nullptr;
-
-    if (getHealth() > 0) {
-      botMemory->updateVision();
-      targetingSystem->update();
-
-      double maxScore = -1.0;
-
-      for (const auto &g : goals) {
-        double desire = g->calculateDesirability();
-        //          LOG << g->description() << " desire " << desire;
-        if (desire > maxScore) {
-          maxScore = desire;
-          goal = g.get();
-        }
+    if (goal != nullptr) {
+      goal->update();
+      string description = goal->description();
+      if (previousDescription != description) {
+        LOG << "Bot is " << description << " maxScore " << maxScore;
       }
 
-      if (goal != nullptr) {
-        goal->update();
-        string description = goal->description();
-        if (previousDescription != description) {
-          LOG << "Bot is " << description << " maxScore " << maxScore;
-        }
-
-        previousDescription = description;
-      }
-    } else if (getHealth() <= 0) {
-//      setRespawned(true);
-      Command *command = getCommand();
-      command->buttons = 1;
-      targetingSystem->clearTarget();
-      LOG << "Health is " << getHealth() << " armor is " << getArmor() << ", trying to respawn!";
+      previousDescription = description;
     }
+  } else if (getHealth() <= 0) {
+    targetingSystem->clearTarget();
+    command->buttons = 1;
+  }
 
-    cmds[frame].msec = ms;
-    frame = (frame + 1) % UPDATE_BACKUP;
+  // attempt every msec.
+  float msecs = (command->msec / 1000.0f);
 
-    previousTime = currentTime;
-    currentTime = getTime();
-    counter += (currentTime - previousTime);
-
-    // 20 ms ping.
-    if (counter > 0.02) {
-      Message s;
-      createCommand(&s);
-      outputQueue.push(s);
-      counter = 0;
-    }
-
+  if (counter > msecs) {
+    Message s;
+    createCommand(&s);
+    outputQueue.push(s);
+    counter = 0;
   }
 }
 
@@ -981,7 +955,7 @@ void Bot::parseDelta(Message *msg, byte bits) {
   }
 
   if (bits & U_ANGLE2) {
-    msg->readAngle();
+    LOG << "ANGLE2 = " << msg->readAngle();
   }
 
   if (bits & U_ORIGIN3) {
@@ -1005,7 +979,7 @@ void Bot::nullCommand(Command *cmd) {
   cmd->buttons = 0;
   cmd->forwardMove = 0;
   cmd->impulse = 0;
-  cmd->msec = 0;
+  cmd->msec = 50;
   cmd->sideMove = 0;
   cmd->upMove = 0;
 }

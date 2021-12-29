@@ -79,11 +79,9 @@ private:
 
   int stats[MAX_CL_STATS];
 
-  void nullCommand(Command *cmd);
 
   mutex infoLock;
   mutex statLock;
-  bool respawned;
 
   map<byte, unique_ptr<ServerMessage>> serverMessages;
   unsigned protoVer;
@@ -91,7 +89,9 @@ private:
   bool gotChallenge;
 
   int validSequence;
+  Goal *goal;
 public:
+  void nullCommand(Command *cmd);
 
   string getMapCheckSum(string key) {
     return mapChecksums[key];
@@ -173,15 +173,12 @@ public:
     return cmd;
   }
 
-  map<string, vector<glm::vec3>> getWaypoints() const {
-    return waypoints;
-  }
-  bool getRespawned() {
-    return respawned;
+  Command * getCommands() {
+    return &cmds[0];
   }
 
-  void setRespawned(bool value) {
-    this->respawned = value;
+  map<string, vector<glm::vec3>> getWaypoints() const {
+    return waypoints;
   }
 
   void setSpawnCount(long v) {
@@ -226,9 +223,14 @@ public:
   void setMySlot(int mySlot) {
     if (this->mySlot == -1) {
       this->mySlot = mySlot;
+      getMe()->slot = mySlot;
     } else {
       LOG << "Warning: something is trying to set myslot to " << mySlot << " current bot slot is " << this->mySlot;
     }
+  }
+
+  int getFrame() {
+    return frame;
   }
 };
 
