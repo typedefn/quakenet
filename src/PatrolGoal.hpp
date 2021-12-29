@@ -23,10 +23,7 @@ public:
     return "Patrolling";
   }
 private:
-  double previousDist;
-  float dist;
-  int frame;
-  int prevFrame;
+  int dist;
 };
 
 #endif /* PATROLGOAL_HPP_ */

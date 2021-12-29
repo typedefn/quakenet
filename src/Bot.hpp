@@ -48,7 +48,6 @@ private:
 
   int challenge;
   int frame;
-  int targetSlot;
 
   long spawnCount;
 
@@ -132,13 +131,6 @@ public:
     return botMemory.get();
   }
 
-  int getTargetId() {
-    if (targetSlot >= MAX_CLIENTS) {
-      LOG << "getTargetId error " << targetSlot << " > " << MAX_CLIENTS;
-      return -1;
-    }
-    return targetSlot;
-  }
   double getTime();
   void getChallenge();
   void parseServerMessage(Message *message);
@@ -163,6 +155,14 @@ public:
   void parsePacketEntities(Message *msg, bool delta);
   void parseDelta(Message *msg, byte bits);
   void parseBaseline2(Message *msg);
+
+  void moveForward(short speed);
+  void clickButton(int button);
+  void moveSide(short speed);
+  void moveUp(short speed);
+  void rotateY(int angle);
+  void rotateX(int angle);
+  void impulse(int impulse);
 
   TargetingSystem* getTargetingSystem() {
     return targetingSystem.get();
@@ -211,13 +211,6 @@ public:
 
   HandShakeState getState() {
     return currentState;
-  }
-
-  void setTargetSlot(int targetSlot) {
-    if (targetSlot == mySlot) {
-      return;
-    }
-    this->targetSlot = targetSlot;
   }
 
   void setMySlot(int mySlot) {

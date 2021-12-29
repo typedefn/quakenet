@@ -23,20 +23,19 @@ void SeekGoal::update() {
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
 
-  if (targetingSystem->isTargetPresent()) {
-    const float maxDistance = 400.0;
-    glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
-    float dist = glm::distance(targetPosition, me->position);
 
-    glm::vec3 dir = targetPosition - me->position;
+  const float maxDistance = 400.0;
+  glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
 
-    size_t frame = (owner->getFrame()) % UPDATE_BACKUP;
-    Command *command = &owner->getCommands()[frame];
+  float dist = glm::distance(targetPosition, me->position);
+  glm::vec3 dir = targetPosition - me->position;
+  float yaw = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
 
-//    command->angles[1] = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
-    command->forwardMove = 250;
+  if (dist > maxDistance) {
+    owner->moveForward(250);
   }
 
+  owner->rotateY(yaw);
 }
 
 double SeekGoal::calculateDesirability() {
@@ -44,15 +43,14 @@ double SeekGoal::calculateDesirability() {
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
 
-  double desire = 0.0;
-  double tweak = 1.0;
-  // TODO: Get max health from server.
-  double maxHealth = 100;
-  if (targetingSystem->isTargetPresent() && !targetingSystem->isTargetWithinFov() && owner->getHealth() > 0) {
+  double desire = 0.1;
+  double tweak = 2;
+
+  if (targetingSystem->isTargetPresent()) {
     int id = targetingSystem->getTarget();
     glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
     float dist = glm::distance(me->position, targetPosition);
-    desire = tweak * ((maxHealth - owner->getHealth())/dist);
+    desire = (tweak*owner->getHealth())/(owner->getHealth()+dist-400);
   }
 
   return desire;

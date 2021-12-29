@@ -41,6 +41,13 @@ void UpdateUserInfoMessage::read(Message *message) {
     LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " " << value << " " << name;
   }
 
+  string spectator = Utility::findValue("*spectator", value);
+
+  if (spectator == "1") {
+    pi->active = false;
+  }
+
+
 
 //  LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " " << value << " " << name;
   // updateUserInfo:  slot = 1 user id 2 \*client\ezQuake 6923\chat\1\bottomcolor\4\topcolor\4\skin\tf_sold\team\red\name\mastakillah mastakillah

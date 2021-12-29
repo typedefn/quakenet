@@ -14,15 +14,14 @@ Bot::Bot(char **argv) {
   delay = 5000;
   challenge = 0;
   frame = 0;
-  targetSlot = -1;
   mySlot = -1;
   previousState = currentState = None;
-  this->botMemory = make_unique<BotMemory>(this, 2.0);
+  this->botMemory = make_unique<BotMemory>(this, 8);
   this->targetingSystem = make_unique<TargetingSystem>(this);
 
-//  goals.push_back(make_unique<PatrolGoal>(this));
+  goals.push_back(make_unique<PatrolGoal>(this));
 //  goals.push_back(make_unique<SeekGoal>(this));
-  goals.push_back(make_unique<AttackGoal>(this));
+//  goals.push_back(make_unique<AttackGoal>(this));
 
   for (int i = 0; i < MAX_CLIENTS; i++) {
     players[i].coords[0] = 0;
@@ -658,7 +657,6 @@ void Bot::setInfo() {
 
 void Bot::sendImpulse(byte impulse, long delay) {
   for (int i = 0; i < UPDATE_BACKUP; i++) {
-    cmds[frame].msec = 100;
     cmds[frame].impulse = impulse;
     frame = (frame + 1) % UPDATE_BACKUP;
   }
@@ -724,26 +722,9 @@ void Bot::createCommand(Message *s) {
 
 void Bot::think() {
   static string previousDescription;
-  static double extramsec = 0;
   static double previousTime = 0;
   static double counter = 0;
   static double currentTime = 0;
-
-  static double previousRespawnTime = 0;
-  static double respawnCounter = 0;
-  static double currentRespawnTime = 0;
-
-  extramsec += 0.5 * 1000;
-
-  int ms = extramsec;
-
-  extramsec -= ms;
-
-  if (ms > 250) {
-    ms = 100;
-  }
-
-  extramsec += 0.01;
 
   PlayerInfo *me = getPlayerBySlot(mySlot);
 
@@ -753,26 +734,16 @@ void Bot::think() {
   }
 
   frame = (connection.getOutgoingSequence() & UPDATE_MASK);
-
   Command *command = &cmds[frame];
 
-  command->msec = 50;
+  nullCommand(command);
 
   previousTime = currentTime;
   currentTime = getTime();
   counter += (currentTime - previousTime);
 
-  previousRespawnTime = currentRespawnTime;
-  currentRespawnTime = getTime();
-  respawnCounter += (currentRespawnTime - previousRespawnTime);
-
   botMemory->updateVision();
   targetingSystem->update();
-
-  if (respawnCounter > 2) {
-    LOG << "HEALTH: " << getHealth();
-    respawnCounter = 0;
-  }
 
   if (getHealth() > 0) {
     double maxScore = -1.0;
@@ -795,7 +766,7 @@ void Bot::think() {
     }
   } else if (getHealth() <= 0) {
     targetingSystem->clearTarget();
-    command->buttons = 1;
+    clickButton(1);
   }
 
   // attempt every msec.
@@ -886,7 +857,6 @@ void Bot::parsePacketEntities(Message *msg, bool delta) {
   }
 
   validSequence = connection.getIncomingSequence();
-//  deltaSequence = connection.getIncomingSequence();
 
   int word = 0;
   while (1) {
@@ -955,7 +925,7 @@ void Bot::parseDelta(Message *msg, byte bits) {
   }
 
   if (bits & U_ANGLE2) {
-    LOG << "ANGLE2 = " << msg->readAngle();
+    msg->readAngle();
   }
 
   if (bits & U_ORIGIN3) {
@@ -972,6 +942,41 @@ void Bot::parseBaseline2(Message *msg) {
   parseDelta(msg, msg->readShort());
 }
 
+void Bot::moveForward(short speed) {
+  cmds[frame].forwardMove = speed;
+}
+
+void Bot::moveUp(short speed) {
+  if (frame < 32) {
+    cmds[frame].upMove = speed;
+  }
+}
+
+void Bot::moveSide(short speed) {
+  if (frame < 32) {
+    cmds[frame].sideMove = speed;
+  }
+}
+
+void Bot::clickButton(int button) {
+  if (frame < 32) {
+    cmds[frame].buttons = button;
+  }
+}
+
+void Bot::rotateY(int angle) {
+  cmds[frame].angles[1] = angle;
+}
+
+void Bot::rotateX(int angle) {
+  cmds[frame].angles[0] = angle;
+}
+
+void Bot::impulse(int impulse) {
+  cmds[frame].impulse = impulse;
+}
+
+
 void Bot::nullCommand(Command *cmd) {
   cmd->angles[0] = 0;
   cmd->angles[1] = 0;
@@ -979,7 +984,7 @@ void Bot::nullCommand(Command *cmd) {
   cmd->buttons = 0;
   cmd->forwardMove = 0;
   cmd->impulse = 0;
-  cmd->msec = 50;
+  cmd->msec = 10 + (rand() % 20);
   cmd->sideMove = 0;
   cmd->upMove = 0;
 }

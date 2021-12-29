@@ -22,7 +22,6 @@ public:
     return "Strafing";
   }
 private:
-  double previousDist;
   double dist;
 };
 

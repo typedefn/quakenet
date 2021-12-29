@@ -20,6 +20,7 @@ struct MemoryRecord {
 	bool shootable;
 	double timeOutOfFov;
 	double lastTimeOutOfFov;
+	int slot;
 };
 
 class BotMemory {
@@ -42,7 +43,7 @@ public:
 	double getTimeEntityHasBeenVisible(int id) const;
 	double getTimeEntityHasBeenOutOfFov(int id) const;
 	// list of all the entities that had their records updated within the last memorySpan seconds.
-	list<int> getListOfRecentlySensedEntities() const;
+	list<int> getListOfRecentlySensedEntities();
 };
 
 #endif /* BOTMEMORY_HPP_ */

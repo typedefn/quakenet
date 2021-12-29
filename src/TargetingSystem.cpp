@@ -38,7 +38,7 @@ void TargetingSystem::update() {
 
 		float dist = glm::distance(owner->getBotMemory()->getLastSensedPosition(id), m->position);
 
-		if (dist < closestDistanceSoFar && dist <= 750) {
+		if (dist < closestDistanceSoFar && dist <= 700) {
 			closestDistanceSoFar = dist;
 			currentTarget = id;
 		}
@@ -55,6 +55,9 @@ bool TargetingSystem::isTargetWithinFov() const {
 }
 
 vec3 TargetingSystem::getLastRecordedPosition() const {
+  if (currentTarget < 0) {
+//    LOG << " Current target < 0";
+  }
 	return owner->getBotMemory()->getLastSensedPosition(currentTarget);
 }
 
