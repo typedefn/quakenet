@@ -26,14 +26,14 @@ void PatrolGoal::update() {
 
   static int wi = 0;
   const float maxDistance = 50.0;
-  glm::vec3 targetPosition(waypoints.at(wi).x, waypoints.at(wi).y, waypoints.at(wi).z);
+  glm::vec3 targetPosition(waypoints.at(wi).x, me->position.y, waypoints.at(wi).z);
 
   dist = glm::distance(targetPosition, me->position);
   glm::vec3 dir = normalize(targetPosition - me->position);
   float yaw = 90 + atan2(-dir.x, dir.z) * (180.0 / PI);
 
   if (dist > maxDistance) {
-    owner->moveForward(glm::min(248, dist));
+    owner->moveForward(glm::min(248, dist+50));
     LOG << " distance " << dist;
   }
 

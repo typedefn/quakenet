@@ -456,4 +456,5 @@ void Message::writeDeltaUserCommand(Command *from, Command *cmd) {
 
   //msec
   writeByte(cmd->msec);
+  LOG << "msec = " << (int)cmd->msec;
 }

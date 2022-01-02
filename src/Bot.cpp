@@ -9,7 +9,7 @@
 #include "Gene.hpp"
 
 Bot::Bot(char **argv) {
-  ahead = UPDATE_MASK;
+  ahead = 1;
   protoVer = 0;
   delay = 5000;
   challenge = 0;
@@ -94,12 +94,12 @@ Bot::~Bot() {
 }
 
 void Bot::mainLoop() {
-  connection.connect(this->argv);
-  getChallenge();
   nullCommand(&nullcmd);
   for (int i = 0; i < UPDATE_BACKUP; i++) {
     nullCommand(&cmds[i]);
   }
+  connection.connect(this->argv);
+  getChallenge();
   // Assuming this is a 1on1r.map so load 1on1r.bot
   fstream fs;
   string filename("../resources/1on1r.bot");
@@ -946,10 +946,8 @@ void Bot::parseBaseline2(Message *msg) {
 void Bot::moveForward(short speed) {
 
   timers["forward"] += (currentTime - previousTime);
-  if (timers["forward"] > 0.5) {
-    for (int i = frame; i < frame + ahead; i++) {
-      cmds[frame].forwardMove = speed;
-    }
+  if (timers["forward"] > 0.2) {
+    cmds[frame].forwardMove = speed;
     timers["forward"] = 0;
   }
 }
@@ -965,10 +963,7 @@ void Bot::moveSide(short speed) {
 void Bot::clickButton(int button) {
   timers["button"] += (currentTime - previousTime);
   if (timers["button"] > 0.5) {
-    for (int i = frame; i < frame + ahead; i++) {
-      cmds[i & UPDATE_MASK].buttons = button;
-    }
-
+    cmds[frame].buttons = button;
     timers["button"] = 0;
   }
 }
