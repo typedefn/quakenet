@@ -88,6 +88,8 @@ Bot::Bot(char **argv) {
   timers["state"] = 0;
   timers["forward"] = 0;
   timers["button"] = 0;
+  timers["prime"] = 0;
+  primeCounter = 0;
 }
 
 Bot::~Bot() {
@@ -126,7 +128,6 @@ void Bot::mainLoop() {
 
   currentTime = getTime();
   previousTime = 0;
-  totalTime = 0;
 
   bool received = false;
 
@@ -134,7 +135,6 @@ void Bot::mainLoop() {
     int s = 0;
     previousTime = currentTime;
     currentTime = getTime();
-    totalTime += (currentTime - previousTime);
 
     Message inMessage;
 
@@ -625,8 +625,11 @@ void Bot::updateState() {
     requestStringCommand("setinfo \"team\" \"blue\"", 0);
     requestStringCommand("setinfo \"skin\" \"tf_sold\"", 2);
     delay = 20;
-    currentState = None;
     connection.handshakeComplete();
+    currentState = None;
+    for (int i = 0; i < UPDATE_BACKUP; i++) {
+      nullCommand(&cmds[i]);
+    }
     break;
   }
   default:
@@ -720,15 +723,15 @@ void Bot::createCommand(Message *s) {
 void Bot::think() {
   static string previousDescription;
 
-  timers["command"] += (currentTime - previousTime);
-  if (timers["command"] > .9) {
-
+//  timers["command"] += (currentTime - previousTime);
+//  if (timers["command"] > 8) {
+//
     for (int i = 0; i < UPDATE_BACKUP; i++) {
       nullCommand(&cmds[i]);
     }
-
-    timers["command"] = 0;
-  }
+//
+//    timers["command"] = 0;
+//  }
 
   PlayerInfo *me = getPlayerBySlot(mySlot);
 
@@ -765,6 +768,16 @@ void Bot::think() {
     LOG << "Dead, trying to respawn, frame: " << frame;
   }
 
+  /**
+   * TODO: Need to fix a bug were the bot gets stuck
+   * on first spawn.
+   */
+  timers["prime"] += (currentTime - previousTime);
+  if (timers["prime"] > 6 && primeCounter < 1) {
+    primeCounter++;
+    requestStringCommand("kill");
+  }
+
   timers["think"] += (currentTime - previousTime);
   Command *command = &cmds[frame];
   if (timers["think"] >= command->msec / 1000.0) {
@@ -773,12 +786,6 @@ void Bot::think() {
     outputQueue.push(s);
     timers["think"] = 0;
   }
-  // attempt every msec.
-//  float msecs = (command->msec / 1000.0f);
-
-//  if (counter > msecs) {
-
-//  }
 }
 
 void Bot::requestStringCommand(string value) {
@@ -946,9 +953,11 @@ void Bot::parseBaseline2(Message *msg) {
 void Bot::moveForward(short speed) {
 
   timers["forward"] += (currentTime - previousTime);
-  if (timers["forward"] > 0.2) {
-    cmds[frame].forwardMove = speed;
+  if (timers["forward"] > 1) {
+    cmds[frame].forwardMove = 0;
     timers["forward"] = 0;
+  } else if (timers["forward"] > 0.2) {
+    cmds[frame].forwardMove = speed;
   }
 }
 
@@ -962,9 +971,11 @@ void Bot::moveSide(short speed) {
 
 void Bot::clickButton(int button) {
   timers["button"] += (currentTime - previousTime);
-  if (timers["button"] > 0.5) {
-    cmds[frame].buttons = button;
+  if (timers["button"] > 1) {
+    cmds[frame].buttons = 0;
     timers["button"] = 0;
+  } else if (timers["button"] > 0.2) {
+    cmds[frame].buttons = button;
   }
 }
 

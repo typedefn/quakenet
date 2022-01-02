@@ -34,7 +34,7 @@ void SetInfoMessage::read(Message *message) {
 //    bot->setState(SelectClass);
     LOG << "JOINED BLUE TEAM";
   } else if (key == "skin" && value == "tf_sold") {
-    bot->setState(Done);
+//    bot->setState(Done);
     LOG << "SELECTED CLASS 'SOLDIER'!";
   }
 }

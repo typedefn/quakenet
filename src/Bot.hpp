@@ -95,7 +95,7 @@ private:
 
   double currentTime;
   double previousTime;
-  double totalTime;
+  int primeCounter;
 public:
   void nullCommand(Command *cmd);
 

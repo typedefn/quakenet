@@ -34,7 +34,7 @@ void PatrolGoal::update() {
 
   if (dist > maxDistance) {
     owner->moveForward(glm::min(248, dist+50));
-    LOG << " distance " << dist;
+//    LOG << " distance " << dist;
   }
 
   owner->rotateY(yaw);

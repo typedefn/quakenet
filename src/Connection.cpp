@@ -433,7 +433,6 @@ void Message::writeDeltaUserCommand(Command *from, Command *cmd) {
 
   if (bits & CM_FORWARD) {
     writeShort(cmd->forwardMove);
-    LOG << "fm = " << cmd->forwardMove;
   }
 
   if (bits & CM_SIDE) {
@@ -446,15 +445,12 @@ void Message::writeDeltaUserCommand(Command *from, Command *cmd) {
 
   if (bits & CM_BUTTONS) {
     writeByte(cmd->buttons);
-    LOG << "btn = " << (int)cmd->buttons;
   }
 
   if (bits & CM_IMPULSE) {
     writeByte(cmd->impulse);
-    LOG << "impulse = " << (int)cmd->impulse;
   }
 
   //msec
   writeByte(cmd->msec);
-  LOG << "msec = " << (int)cmd->msec;
 }
