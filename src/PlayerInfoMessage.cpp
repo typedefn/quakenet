@@ -29,8 +29,8 @@ void PlayerInfoMessage::read(Message *message) {
   PlayerInfo *pi = bot->getPlayerBySlot(num);
 
   if (pi->active && pi->slot != bot->getMe()->slot) {
-    bot->setTargetSlot(num);
-//    LOG << "SLOT " << num << " is active";
+    bot->getTargetingSystem()->setTarget(num);
+//    LOG << "SLOT " << num << " is set as target";
   }
 
   int flags = message->readShort();
@@ -53,7 +53,7 @@ void PlayerInfoMessage::read(Message *message) {
 
   if (flags & PF_MSEC) {
     byte msec = message->readByte();
-    if (num == bot->getTargetId()) {
+    if (num == bot->getTargetingSystem()->getTarget()) {
       frameTime = msec * 0.001;
     }
 
@@ -91,6 +91,14 @@ void PlayerInfoMessage::read(Message *message) {
         pi->angles[1] = message->readAngle16();
       if (bits & CM_ANGLE3)
         pi->angles[2] = message->readAngle16();
+
+//
+//      pi->direction.x = cos(pi->angles[0]*PI/180);
+//      pi->direction.z = sin(pi->angles[1]*PI/180);
+//
+//
+//        LOG << " num " << num << " is facing x = " << pi->direction.x << "  z = " << pi->direction.z;
+//
 
       // read movement
       if (bits & CM_FORWARD) {

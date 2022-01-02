@@ -14,7 +14,6 @@ StrafeGoal::StrafeGoal(Bot *owner) {
   currentTime = 0;
   sign = 0;
   totalTime = 0;
-  previousDist = 0;
   dist = 0;
 }
 
@@ -26,7 +25,6 @@ void StrafeGoal::update() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
-  Command *cmd = owner->getCommand();
 
   double previousTime = currentTime;
   currentTime = owner->getTime();
@@ -37,8 +35,8 @@ void StrafeGoal::update() {
     sign = Utility::getRandomNormal();
     totalTime = 0;
   }
-  cmd->sideMove = sign * 250;
 
+  owner->moveSide(sign * 250);
 }
 
 double StrafeGoal::calculateDesirability() {
@@ -48,19 +46,7 @@ double StrafeGoal::calculateDesirability() {
   double desire = 0.0;
 
   if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov()) {
-    int id = targetingSystem->getTarget();
-    glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
-    previousDist = dist;
-    dist = glm::distance(targetPosition, me->position);
-
-    double previousTime = currentTime;
-    currentTime = owner->getTime();
-    totalTime += (currentTime - previousTime);
-
-    if (fabs(previousDist - dist) < 15 && totalTime > 2) {
-      desire = (memory->getTimeEntityHasBeenVisible(id) / dist);
-    }
-
+    desire = (memory->getTimeEntityHasBeenVisible(targetingSystem->getTarget()));
   }
 
   return desire;

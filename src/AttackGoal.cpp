@@ -23,6 +23,7 @@ AttackGoal::~AttackGoal() {
 }
 
 void AttackGoal::update() {
+
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
@@ -46,24 +47,25 @@ void AttackGoal::update() {
     float yawAngle = 90 + atan2(-directionToTarget.x, directionToTarget.z) * (180.0 / PI);
     float pitchAngle = asinf(opposite / hypotonus) * (180.0 / PI);
 
-    double previousTime = currentTime;
-    currentTime = owner->getTime();
-
-    totalTime += (currentTime - previousTime);
-
-    LOG << " attacking enemy in slot " << slot;
-    if (totalTime > 3) {
-      sign = Utility::getRandomNormal();
-      totalTime = 0;
-    }
-    Command * command = owner->getCommand();
-    command->buttons = 1;
-    command->angles[0] = -pitchAngle;
-    command->angles[1] = yawAngle;
+    owner->rotateY(yawAngle);
+    owner->rotateX(-pitchAngle);
+    owner->clickButton(1 | ((rand() % 2) * 2));
   }
 
-//  for (const auto &g : goals) {
-//    g->update();
+  double maxDesire = -10;
+  Goal *goal = nullptr;
+  for (const auto &g : goals) {
+//    double currentDesire = g->calculateDesirability();
+//    if (currentDesire > maxDesire) {
+//      maxDesire = currentDesire;
+//      goal = g.get();
+//    }
+
+    g->update();
+  }
+//
+//  if (goal != nullptr) {
+//    goal->update();
 //  }
 }
 
@@ -71,15 +73,14 @@ double AttackGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
-  double desire = 2.0;
-  double tweaker = 1.0;
+  double desire = 0.0;
+  double tweaker = 40.0;
 
   if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov()) {
-    int id = targetingSystem->getTarget();
     glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
     float dist = glm::distance(targetPosition, me->position);
 
-    desire = tweaker * (owner->getHealth())/dist;
+    desire = tweaker * (owner->getHealth() / (dist + 100));
   }
 
   return desire;

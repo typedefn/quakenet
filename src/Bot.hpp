@@ -48,7 +48,6 @@ private:
 
   int challenge;
   int frame;
-  int targetSlot;
 
   long spawnCount;
 
@@ -79,11 +78,9 @@ private:
 
   int stats[MAX_CL_STATS];
 
-  void nullCommand(Command *cmd);
 
   mutex infoLock;
   mutex statLock;
-  bool respawned;
 
   map<byte, unique_ptr<ServerMessage>> serverMessages;
   unsigned protoVer;
@@ -91,7 +88,16 @@ private:
   bool gotChallenge;
 
   int validSequence;
+  Goal *goal;
+  int ahead;
+
+  map<string, double> timers;
+
+  double currentTime;
+  double previousTime;
+  int primeCounter;
 public:
+  void nullCommand(Command *cmd);
 
   string getMapCheckSum(string key) {
     return mapChecksums[key];
@@ -132,13 +138,6 @@ public:
     return botMemory.get();
   }
 
-  int getTargetId() {
-    if (targetSlot >= MAX_CLIENTS) {
-      LOG << "getTargetId error " << targetSlot << " > " << MAX_CLIENTS;
-      return -1;
-    }
-    return targetSlot;
-  }
   double getTime();
   void getChallenge();
   void parseServerMessage(Message *message);
@@ -164,6 +163,14 @@ public:
   void parseDelta(Message *msg, byte bits);
   void parseBaseline2(Message *msg);
 
+  void moveForward(short speed);
+  void clickButton(int button);
+  void moveSide(short speed);
+  void moveUp(short speed);
+  void rotateY(int angle);
+  void rotateX(int angle);
+  void impulse(int impulse);
+
   TargetingSystem* getTargetingSystem() {
     return targetingSystem.get();
   }
@@ -173,15 +180,12 @@ public:
     return cmd;
   }
 
-  map<string, vector<glm::vec3>> getWaypoints() const {
-    return waypoints;
-  }
-  bool getRespawned() {
-    return respawned;
+  Command * getCommands() {
+    return &cmds[0];
   }
 
-  void setRespawned(bool value) {
-    this->respawned = value;
+  map<string, vector<glm::vec3>> getWaypoints() const {
+    return waypoints;
   }
 
   void setSpawnCount(long v) {
@@ -216,19 +220,17 @@ public:
     return currentState;
   }
 
-  void setTargetSlot(int targetSlot) {
-    if (targetSlot == mySlot) {
-      return;
-    }
-    this->targetSlot = targetSlot;
-  }
-
   void setMySlot(int mySlot) {
     if (this->mySlot == -1) {
       this->mySlot = mySlot;
+      getMe()->slot = mySlot;
     } else {
       LOG << "Warning: something is trying to set myslot to " << mySlot << " current bot slot is " << this->mySlot;
     }
+  }
+
+  int getFrame() {
+    return frame;
   }
 };
 

@@ -61,6 +61,7 @@ public:
   static float floatSwap (float f);
 
   static std::vector<std::string> split(std::string str, char delimiter);
+  static int makeChar(int i);
 private:
 
 };

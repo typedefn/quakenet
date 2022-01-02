@@ -269,3 +269,15 @@ std::vector<std::string> Utility::split(std::string str, char delimiter = ' ') {
   }
   return strings;
 }
+
+int Utility::makeChar(int i)
+{
+        i &= ~3;
+        if (i < -127 * 4)
+                i = -127 * 4;
+        if (i > 127 * 4)
+                i = 127 * 4;
+        return i;
+}
+
+

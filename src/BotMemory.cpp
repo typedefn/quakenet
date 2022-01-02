@@ -18,20 +18,16 @@ BotMemory::~BotMemory() {
   // TODO Auto-generated destructor stub
 }
 
-list<int> BotMemory::getListOfRecentlySensedEntities() const {
+list<int> BotMemory::getListOfRecentlySensedEntities() {
   list<int> entities;
 
   double currentTime = owner->getTime();
 
-  for (const auto &r : memoryMap) {
-
-    if (r.first == owner->getMe()->slot) {
-      continue;
-    }
-
+  for (const pair<int, MemoryRecord> r : memoryMap) {
     // if this entity has been updated in the memory recently, add to list.
-    if ((currentTime - r.second.lastVisible) < memorySpan) {
-      entities.push_back(r.first);
+    double delta = (currentTime - r.second.lastVisible);
+    if (delta < memorySpan) {
+      entities.push_back(r.second.slot);
     }
   }
 
@@ -39,43 +35,41 @@ list<int> BotMemory::getListOfRecentlySensedEntities() const {
 }
 
 void BotMemory::updateVision() {
+  PlayerInfo *m = owner->getMe();
 
-  int target = owner->getTargetingSystem()->getTarget();
-
-  auto rec = memoryMap.find(target);
-
-  if (rec == memoryMap.end()) {
-    MemoryRecord mem = { getLastSensedPosition(target), owner->getTime(), 0, false, false, 0, 0 };
-    memoryMap[target] = mem;
-  }
-
-  for (auto &r : memoryMap) {
-    PlayerInfo *p = owner->getPlayerBySlot(r.first);
-    PlayerInfo *m = owner->getMe();
-
-    if (m == p) {
+  for (size_t num = 0; num < MAX_CLIENTS; num++) {
+    PlayerInfo *pi = owner->getPlayerBySlot(num);
+    if (!pi->active) {
       continue;
     }
 
-    if (!p->active) {
+    if (num == m->slot) {
       continue;
     }
 
-    MemoryRecord *mem = &(r.second);
+    MemoryRecord m;
 
-    if (isWithinFov(r.first)) {
-      mem->lastSensedPosition = getLastSensedPosition(target);
-      mem->timeOpponentVisible += (owner->getTime() - mem->lastVisible);
-      mem->lastVisible = owner->getTime();
-      mem->timeOutOfFov = 0.0;
-      mem->withinFov = true;
+    if (isWithinFov(num)) {
+      m.lastSensedPosition = pi->position;
+      m.timeOpponentVisible += (owner->getTime() - m.lastVisible);
+      m.lastVisible = owner->getTime();
+      m.timeOutOfFov = 0.0;
+      m.withinFov = true;
     } else {
-      mem->timeOutOfFov += (owner->getTime() - mem->lastTimeOutOfFov);
-      mem->lastTimeOutOfFov = owner->getTime();
-      mem->timeOpponentVisible = 0.0;
-      mem->withinFov = false;
+      m.timeOutOfFov += (owner->getTime() - m.lastTimeOutOfFov);
+      m.lastTimeOutOfFov = owner->getTime();
+      m.timeOpponentVisible = 0.0;
+      m.withinFov = false;
     }
+
+    m.slot = num;
+    if(memoryMap.find(num) != memoryMap.end()) {
+      memoryMap.erase(num);
+    }
+
+    memoryMap.insert(make_pair(num, m));
   }
+
 }
 
 bool BotMemory::isWithinFov(int id) {
@@ -87,13 +81,14 @@ bool BotMemory::isWithinFov(int id) {
   vec3 position = me->position;
 
   vec3 target = owner->getTargetingSystem()->getLastRecordedPosition();
-  vec3 facing = cross(normalize(me->direction), vec3(0, 1, 0));
+  vec3 facing = normalize(me->direction);
   double fov = 90;
   vec3 toTarget = normalize(target - position);
   float d = dot(facing, toTarget);
   double c = cos(fov / 2.0);
-  inFov = (d > c);
-//  LOG << "in fov = " << inFov << " c " << c << " d " << d << " x " << facing.x << " y " << facing.y << " z " << facing.z;
+  inFov = (d >= 0.01);
+
+//  LOG << " in fov = " << inFov << " d = " << d << " t.x " << target.x << " t.z " << target.z;
   return inFov;
 }
 

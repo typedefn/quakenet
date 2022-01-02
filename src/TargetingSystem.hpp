@@ -27,7 +27,9 @@ public:
 	double getTimeTargetHasBeenOutOfView() const;
 	int getTarget() const;
 	void clearTarget();
-
+	void setTarget(int t) {
+	  currentTarget = t;
+	}
 private:
 	Bot *owner;
 	int currentTarget;

@@ -22,7 +22,7 @@
 #define A2A_ECHO 'e'
 #define A2C_PRINT 'n'
 
-#define UPDATE_BACKUP   64      // copies of entity_state_t to keep buffered (must be power of two)
+#define UPDATE_BACKUP   4     // copies of entity_state_t to keep buffered (must be power of two)
 #define UPDATE_MASK             (UPDATE_BACKUP - 1)
 
 #define S2M_HEARTBEAT 'a'
