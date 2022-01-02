@@ -20,8 +20,8 @@ Bot::Bot(char **argv) {
   this->targetingSystem = make_unique<TargetingSystem>(this);
 
   goals.push_back(make_unique<PatrolGoal>(this));
-//  goals.push_back(make_unique<SeekGoal>(this));
-//  goals.push_back(make_unique<AttackGoal>(this));
+  goals.push_back(make_unique<SeekGoal>(this));
+  goals.push_back(make_unique<AttackGoal>(this));
 
   for (int i = 0; i < MAX_CLIENTS; i++) {
     players[i].coords[0] = 0;
@@ -723,15 +723,9 @@ void Bot::createCommand(Message *s) {
 void Bot::think() {
   static string previousDescription;
 
-//  timers["command"] += (currentTime - previousTime);
-//  if (timers["command"] > 8) {
-//
-    for (int i = 0; i < UPDATE_BACKUP; i++) {
-      nullCommand(&cmds[i]);
-    }
-//
-//    timers["command"] = 0;
-//  }
+  for (int i = 0; i < UPDATE_BACKUP; i++) {
+    nullCommand(&cmds[i]);
+  }
 
   PlayerInfo *me = getPlayerBySlot(mySlot);
 
@@ -765,7 +759,6 @@ void Bot::think() {
   } else if (getHealth() <= 0) {
     targetingSystem->clearTarget();
     clickButton(2);
-    LOG << "Dead, trying to respawn, frame: " << frame;
   }
 
   /**

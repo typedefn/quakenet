@@ -23,16 +23,15 @@ void SeekGoal::update() {
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
 
-
-  const float maxDistance = 400.0;
+  const int maxDistance = 400.0;
   glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
 
-  float dist = glm::distance(targetPosition, me->position);
+  int dist = glm::distance(targetPosition, me->position);
   glm::vec3 dir = targetPosition - me->position;
   float yaw = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
 
   if (dist > maxDistance) {
-    owner->moveForward(250);
+    owner->moveForward(glm::min(248, dist+50));
   }
 
   owner->rotateY(yaw);
