@@ -89,6 +89,13 @@ private:
 
   int validSequence;
   Goal *goal;
+  int ahead;
+
+  map<string, double> timers;
+
+  double currentTime;
+  double previousTime;
+  double totalTime;
 public:
   void nullCommand(Command *cmd);
 

@@ -9,7 +9,7 @@
 #include "Gene.hpp"
 
 Bot::Bot(char **argv) {
-
+  ahead = UPDATE_MASK;
   protoVer = 0;
   delay = 5000;
   challenge = 0;
@@ -81,6 +81,13 @@ Bot::Bot(char **argv) {
   gotChallenge = false;
   validSequence = 0;
   goal = nullptr;
+
+  timers["spawn"] = 0;
+  timers["think"] = 0;
+  timers["command"] = 0;
+  timers["state"] = 0;
+  timers["forward"] = 0;
+  timers["button"] = 0;
 }
 
 Bot::~Bot() {
@@ -117,9 +124,9 @@ void Bot::mainLoop() {
 
   fs.close();
 
-  double currentTime = getTime();
-  double previousTime = 0;
-  double totalTime = 0;
+  currentTime = getTime();
+  previousTime = 0;
+  totalTime = 0;
 
   bool received = false;
 
@@ -137,6 +144,14 @@ void Bot::mainLoop() {
       }
     }
 
+    frame = (connection.getOutgoingSequence() & UPDATE_MASK);
+
+    updateState();
+
+    if (connection.hasJoinedGame()) {
+      think();
+    }
+
     if (!outputQueue.empty()) {
       Message outMessage = outputQueue.front();
       if (outMessage.isConnectionless()) {
@@ -145,23 +160,6 @@ void Bot::mainLoop() {
         s = connection.send(outMessage);
       }
       outputQueue.pop();
-      totalTime = 0;
-    }
-
-    updateState();
-
-    // Resend msgs due to timeout or some weird issue.
-    if (!connection.hasJoinedGame() && (getTime() - timeChallengeSent) > 10.0) {
-      LOG << "Messaged timed out, resending";
-      outputQueue.clear();
-      connection.close();
-      connection.connect(this->argv);
-      getChallenge();
-      currentState = None;
-    }
-
-    if (connection.hasJoinedGame()) {
-      think();
     }
 
     // Prevent CPU hogging.
@@ -603,18 +601,26 @@ void Bot::updateState() {
   }
   case JoinTeam: {
     // Assuming it is fortress gamedir now.
-    sendImpulse(1, 2);
-    currentState = None;
+    timers["state"] += (currentTime - previousTime);
+    if (timers["state"] > 1) {
+      sendImpulse(1, 2);
+      timers["state"] = 0;
+      currentState = None;
+    }
     break;
   }
   case SelectClass: {
-    sendImpulse(3, 2);
+    timers["state"] += (currentTime - previousTime);
+    if (timers["state"] > 1) {
+      sendImpulse(3, 2);
+      timers["state"] = 0;
+      currentState = None;
+    }
     break;
   }
   case DisableChat:
     break;
-  case Done:
-    sendImpulse(7, 2);
+  case Done: {
     requestStringCommand("setinfo \"bottomcolor\" \"13\"", 2);
     requestStringCommand("setinfo \"team\" \"blue\"", 0);
     requestStringCommand("setinfo \"skin\" \"tf_sold\"", 2);
@@ -622,6 +628,7 @@ void Bot::updateState() {
     currentState = None;
     connection.handshakeComplete();
     break;
+  }
   default:
     break;
   }
@@ -656,20 +663,10 @@ void Bot::setInfo() {
 }
 
 void Bot::sendImpulse(byte impulse, long delay) {
-  for (int i = 0; i < UPDATE_BACKUP; i++) {
-    cmds[frame].impulse = impulse;
-    frame = (frame + 1) % UPDATE_BACKUP;
-  }
+  this->impulse(impulse);
   Message s;
-  s.setCommand(true);
-  s.delay = delay;
   createCommand(&s);
   outputQueue.push(s);
-
-  for (int i = 0; i < UPDATE_BACKUP; i++) {
-    nullCommand(&cmds[frame]);
-    frame = (frame + 1) % UPDATE_BACKUP;
-  }
 }
 
 void Bot::createCommand(Message *s) {
@@ -710,7 +707,7 @@ void Bot::createCommand(Message *s) {
 
   s->setCurrentSize(size);
 
-  if (connection.getOutgoingSequence() - validSequence >= UPDATE_BACKUP - 1) {
+  if (connection.getOutgoingSequence() - validSequence >= UPDATE_MASK) {
     validSequence = 0;
   }
 
@@ -722,9 +719,16 @@ void Bot::createCommand(Message *s) {
 
 void Bot::think() {
   static string previousDescription;
-  static double previousTime = 0;
-  static double counter = 0;
-  static double currentTime = 0;
+
+  timers["command"] += (currentTime - previousTime);
+  if (timers["command"] > .9) {
+
+    for (int i = 0; i < UPDATE_BACKUP; i++) {
+      nullCommand(&cmds[i]);
+    }
+
+    timers["command"] = 0;
+  }
 
   PlayerInfo *me = getPlayerBySlot(mySlot);
 
@@ -732,15 +736,6 @@ void Bot::think() {
     LOG << " me == nullptr";
     return;
   }
-
-  frame = (connection.getOutgoingSequence() & UPDATE_MASK);
-  Command *command = &cmds[frame];
-
-  nullCommand(command);
-
-  previousTime = currentTime;
-  currentTime = getTime();
-  counter += (currentTime - previousTime);
 
   botMemory->updateVision();
   targetingSystem->update();
@@ -766,18 +761,24 @@ void Bot::think() {
     }
   } else if (getHealth() <= 0) {
     targetingSystem->clearTarget();
-    clickButton(1);
+    clickButton(2);
+    LOG << "Dead, trying to respawn, frame: " << frame;
   }
 
-  // attempt every msec.
-  float msecs = (command->msec / 1000.0f);
-
-  if (counter > msecs) {
+  timers["think"] += (currentTime - previousTime);
+  Command *command = &cmds[frame];
+  if (timers["think"] >= command->msec / 1000.0) {
     Message s;
     createCommand(&s);
     outputQueue.push(s);
-    counter = 0;
+    timers["think"] = 0;
   }
+  // attempt every msec.
+//  float msecs = (command->msec / 1000.0f);
+
+//  if (counter > msecs) {
+
+//  }
 }
 
 void Bot::requestStringCommand(string value) {
@@ -943,24 +944,32 @@ void Bot::parseBaseline2(Message *msg) {
 }
 
 void Bot::moveForward(short speed) {
-  cmds[frame].forwardMove = speed;
+
+  timers["forward"] += (currentTime - previousTime);
+  if (timers["forward"] > 0.5) {
+    for (int i = frame; i < frame + ahead; i++) {
+      cmds[frame].forwardMove = speed;
+    }
+    timers["forward"] = 0;
+  }
 }
 
 void Bot::moveUp(short speed) {
-  if (frame < 32) {
-    cmds[frame].upMove = speed;
-  }
+  cmds[frame].upMove = speed;
 }
 
 void Bot::moveSide(short speed) {
-  if (frame < 32) {
-    cmds[frame].sideMove = speed;
-  }
+  cmds[frame].sideMove = speed;
 }
 
 void Bot::clickButton(int button) {
-  if (frame < 32) {
-    cmds[frame].buttons = button;
+  timers["button"] += (currentTime - previousTime);
+  if (timers["button"] > 0.5) {
+    for (int i = frame; i < frame + ahead; i++) {
+      cmds[i & UPDATE_MASK].buttons = button;
+    }
+
+    timers["button"] = 0;
   }
 }
 
@@ -973,9 +982,10 @@ void Bot::rotateX(int angle) {
 }
 
 void Bot::impulse(int impulse) {
-  cmds[frame].impulse = impulse;
+  for (int i = frame; i < frame + ahead; i++) {
+    cmds[i & UPDATE_MASK].impulse = impulse;
+  }
 }
-
 
 void Bot::nullCommand(Command *cmd) {
   cmd->angles[0] = 0;
@@ -984,7 +994,7 @@ void Bot::nullCommand(Command *cmd) {
   cmd->buttons = 0;
   cmd->forwardMove = 0;
   cmd->impulse = 0;
-  cmd->msec = 10 + (rand() % 20);
+  cmd->msec = 50 + (rand() % 20);
   cmd->sideMove = 0;
   cmd->upMove = 0;
 }

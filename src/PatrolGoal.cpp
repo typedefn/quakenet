@@ -23,7 +23,7 @@ void PatrolGoal::update() {
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
   vector<vec3> waypoints = owner->getWaypoints()["start"];
-  owner->impulse(1);
+
   static int wi = 0;
   const float maxDistance = 50.0;
   glm::vec3 targetPosition(waypoints.at(wi).x, waypoints.at(wi).y, waypoints.at(wi).z);
@@ -33,7 +33,7 @@ void PatrolGoal::update() {
   float yaw = 90 + atan2(-dir.x, dir.z) * (180.0 / PI);
 
   if (dist > maxDistance) {
-    owner->moveForward(250);
+    owner->moveForward(glm::min(248, dist));
     LOG << " distance " << dist;
   }
 

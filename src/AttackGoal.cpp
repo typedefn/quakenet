@@ -29,7 +29,6 @@ void AttackGoal::update() {
   PlayerInfo *me = owner->getMe();
 
   if (targetingSystem->isTargetPresent()) {
-    owner->impulse(7);
     int slot = targetingSystem->getTarget();
     vec3 lastPosition = targetingSystem->getLastRecordedPosition();
     float targetSpeed = owner->getPlayerBySlot(slot)->speed;
