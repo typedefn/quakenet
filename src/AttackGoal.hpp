@@ -18,7 +18,7 @@ public:
   virtual ~AttackGoal();
   void update();
   double calculateDesirability();
-  string description() const {
+  std::string description() const {
     return "Attacking";
   }
 private:

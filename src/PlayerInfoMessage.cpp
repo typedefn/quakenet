@@ -42,7 +42,7 @@ void PlayerInfoMessage::read(Message *message) {
 
   pi->frame = message->readByte();
 
-  vec3 position = vec3(pi->coords[0], pi->coords[2], pi->coords[1]);
+  glm::vec3 position = glm::vec3(pi->coords[0], pi->coords[2], pi->coords[1]);
   pi->position = position;
 
 //  if (num == bot->getTargetId()) {

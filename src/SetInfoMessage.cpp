@@ -25,8 +25,8 @@ void SetInfoMessage::read(Message *message) {
     return;
   }
 
-  string key(message->readString());
-  string value(message->readString());
+  std::string key(message->readString());
+  std::string value(message->readString());
 
 //  LOG << "setInfo: " << key << " " << value;
   // TODO: Fix all this hardcoded gibberish later...

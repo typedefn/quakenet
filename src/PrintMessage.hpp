@@ -17,7 +17,7 @@ public:
   void read(Message * message);
 
 private:
-  string lastLine;
+  std::string lastLine;
 };
 
 #endif /* SRC_PRINTMESSAGE_HPP_ */

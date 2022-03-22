@@ -25,8 +25,8 @@ void UpdateUserInfoMessage::read(Message *message) {
   }
 
   long userId = message->readLong();
-  string value(message->readString());
-  string name = Utility::findValue("name", value);
+  std::string value(message->readString());
+  std::string name = Utility::findValue("name", value);
   // TODO: fix hardcoded name of bot later.
   if (name == "krupt_drv") {
     LOG << "In slot " << slot << " with id " << userId;
@@ -41,7 +41,7 @@ void UpdateUserInfoMessage::read(Message *message) {
     LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " " << value << " " << name;
   }
 
-  string spectator = Utility::findValue("*spectator", value);
+  std::string spectator = Utility::findValue("*spectator", value);
 
   if (spectator == "1") {
     pi->active = false;

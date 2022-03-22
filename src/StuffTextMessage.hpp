@@ -17,7 +17,7 @@ public:
   void read(Message *message);
 
 private:
-  string mapName;
+  std::string mapName;
 };
 
 #endif /* SRC_STUFFTEXTMESSAGE_HPP_ */

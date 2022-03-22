@@ -39,7 +39,7 @@ void ModelListMessage::read(Message *message) {
     }
 
     if ((n = message->readByte())) {
-      stringstream ss;
+      std::stringstream ss;
       ss << "modellist" << " " << 1 << " " << n;
       bot->requestStringCommand(ss.str());
       return;

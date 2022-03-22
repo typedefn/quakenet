@@ -21,11 +21,11 @@ struct PlayerInfo {
   int frame;
   int flags;
   bool active;
-  vec3 velocity;
-  vec3 position;
+  glm::vec3 velocity;
+  glm::vec3 position;
   double time;
   float speed;
-  vec3 direction;
+  glm::vec3 direction;
   float angles[3];
 };
 

@@ -22,7 +22,7 @@ public:
 
 	bool isTargetPresent() const;
 	bool isTargetWithinFov() const;
-	vec3 getLastRecordedPosition() const;
+	glm::vec3 getLastRecordedPosition() const;
 	double getTimeTargetHasBeenVisible() const;
 	double getTimeTargetHasBeenOutOfView() const;
 	int getTarget() const;

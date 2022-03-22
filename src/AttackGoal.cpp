@@ -12,7 +12,7 @@
 AttackGoal::AttackGoal(Bot *owner) {
   // TODO Auto-generated constructor stub
   this->owner = owner;
-  goals.push_back(make_unique<StrafeGoal>(owner));
+  goals.push_back(std::make_unique<StrafeGoal>(owner));
   totalTime = 0.0;
   sign = 0;
   currentTime = 0;
@@ -30,7 +30,7 @@ void AttackGoal::update() {
 
   if (targetingSystem->isTargetPresent()) {
     int slot = targetingSystem->getTarget();
-    vec3 lastPosition = targetingSystem->getLastRecordedPosition();
+    glm::vec3 lastPosition = targetingSystem->getLastRecordedPosition();
     float targetSpeed = owner->getPlayerBySlot(slot)->speed;
 
     glm::vec3 toEnemy = lastPosition - me->position;

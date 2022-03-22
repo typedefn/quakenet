@@ -31,16 +31,16 @@ public:
     return fitness;
   }
   
-  vector<double> & getGenes() {
+  std::vector<double> & getGenes() {
     return genes;
   }
   
-  void setGenes(vector<double> genes) {
+  void setGenes(std::vector<double> genes) {
     this->genes = genes;
   }
   
 private:  
-  vector<double> genes;
+  std::vector<double> genes;
   double fitness;
   
 };

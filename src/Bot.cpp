@@ -16,12 +16,12 @@ Bot::Bot(char **argv) {
   frame = 0;
   mySlot = -1;
   previousState = currentState = None;
-  this->botMemory = make_unique<BotMemory>(this, 8);
-  this->targetingSystem = make_unique<TargetingSystem>(this);
+  this->botMemory = std::make_unique<BotMemory>(this, 8);
+  this->targetingSystem = std::make_unique<TargetingSystem>(this);
 
-  goals.push_back(make_unique<PatrolGoal>(this));
-  goals.push_back(make_unique<SeekGoal>(this));
-  goals.push_back(make_unique<AttackGoal>(this));
+  goals.push_back(std::make_unique<PatrolGoal>(this));
+  goals.push_back(std::make_unique<SeekGoal>(this));
+  goals.push_back(std::make_unique<AttackGoal>(this));
 
   for (int i = 0; i < MAX_CLIENTS; i++) {
     players[i].coords[0] = 0;
@@ -39,10 +39,10 @@ Bot::Bot(char **argv) {
     players[i].angles[0] = 0;
     players[i].angles[1] = 0;
     players[i].angles[2] = 0;
-    players[i].velocity = vec3(0, 0, 0);
-    players[i].position = vec3(0, 0, 0);
+    players[i].velocity = glm::vec3(0, 0, 0);
+    players[i].position = glm::vec3(0, 0, 0);
     players[i].speed = 0;
-    players[i].direction = vec3(0, 0, 0);
+    players[i].direction = glm::vec3(0, 0, 0);
   }
   this->argv = argv;
 
@@ -55,9 +55,9 @@ Bot::Bot(char **argv) {
   mapChecksums["ztndm3"] = "-1723650232";
   mapChecksums["bravado"] = "-1859843008";
 
-  waypoints[""] = vector<vec3>();
-  waypoints["patrol"] = vector<vec3>();
-  waypoints["start"] = vector<vec3>();
+  waypoints[""] = std::vector<glm::vec3>();
+  waypoints["patrol"] = std::vector<glm::vec3>();
+  waypoints["start"] = std::vector<glm::vec3>();
 
   for (size_t i = 0; i < MAX_CL_STATS; i++) {
     setStat(i, 0);
@@ -66,18 +66,18 @@ Bot::Bot(char **argv) {
   spawnCount = 0;
   timeChallengeSent = getTime();
 
-  serverMessages[svc_serverdata] = make_unique<ServerDataMessage>(this);
-  serverMessages[svc_packetentities] = make_unique<PacketEntitiesMessage>(this);
-  serverMessages[svc_modellist] = make_unique<ModelListMessage>(this);
-  serverMessages[svc_download] = make_unique<DownloadMessage>(this);
-  serverMessages[svc_spawnstaticsound] = make_unique<SpawnStaticSoundMessage>(this);
-  serverMessages[svc_updatestat] = make_unique<UpdateStatMessage>(this);
-  serverMessages[svc_soundlist] = make_unique<SoundListMessage>(this);
-  serverMessages[svc_setinfo] = make_unique<SetInfoMessage>(this);
-  serverMessages[svc_stufftext] = make_unique<StuffTextMessage>(this);
-  serverMessages[svc_updateuserinfo] = make_unique<UpdateUserInfoMessage>(this);
-  serverMessages[svc_playerinfo] = make_unique<PlayerInfoMessage>(this);
-  serverMessages[svc_print] = make_unique<PrintMessage>(this);
+  serverMessages[svc_serverdata] = std::make_unique<ServerDataMessage>(this);
+  serverMessages[svc_packetentities] = std::make_unique<PacketEntitiesMessage>(this);
+  serverMessages[svc_modellist] = std::make_unique<ModelListMessage>(this);
+  serverMessages[svc_download] = std::make_unique<DownloadMessage>(this);
+  serverMessages[svc_spawnstaticsound] = std::make_unique<SpawnStaticSoundMessage>(this);
+  serverMessages[svc_updatestat] = std::make_unique<UpdateStatMessage>(this);
+  serverMessages[svc_soundlist] = std::make_unique<SoundListMessage>(this);
+  serverMessages[svc_setinfo] = std::make_unique<SetInfoMessage>(this);
+  serverMessages[svc_stufftext] = std::make_unique<StuffTextMessage>(this);
+  serverMessages[svc_updateuserinfo] = std::make_unique<UpdateUserInfoMessage>(this);
+  serverMessages[svc_playerinfo] = std::make_unique<PlayerInfoMessage>(this);
+  serverMessages[svc_print] = std::make_unique<PrintMessage>(this);
   gotChallenge = false;
   validSequence = 0;
   goal = nullptr;
@@ -103,22 +103,22 @@ void Bot::mainLoop() {
   connection.connect(this->argv);
   getChallenge();
   // Assuming this is a 1on1r.map so load 1on1r.bot
-  fstream fs;
-  string filename("../resources/1on1r.bot");
+  std::fstream fs;
+  std::string filename("../resources/1on1r.bot");
 
-  fs.open(filename, fstream::in);
+  fs.open(filename, std::fstream::in);
   if (fs.fail()) {
-    stringstream ss;
+    std::stringstream ss;
     ss << "Failed to open " << filename;
-    throw runtime_error(ss.str());
+    throw std::runtime_error(ss.str());
   }
 
   while (!fs.eof()) {
-    stringstream ss;
+    std::stringstream ss;
     char line[256] = { 0 };
     fs.getline(line, 256);
     ss << line;
-    string type;
+    std::string type;
     glm::vec3 waypoint;
     ss >> type >> waypoint.x >> waypoint.y >> waypoint.z;
     waypoints.at(type).push_back(waypoint);
@@ -375,8 +375,8 @@ void Bot::parseServerMessage(Message *message) {
       break;
     }
     case svc_serverinfo: {
-      string key = message->readString();
-      string value = message->readString();
+      std::string key = message->readString();
+      std::string value = message->readString();
       break;
     }
     case svc_cdtrack: {
@@ -413,7 +413,7 @@ void Bot::parseServerMessage(Message *message) {
         coords[i] = message->readCoord();
       }
 
-      vec3 from(coords[0], coords[2], coords[1]);
+      glm::vec3 from(coords[0], coords[2], coords[1]);
       break;
     }
     case svc_sound: {
@@ -539,7 +539,7 @@ void Bot::parseServerMessage(Message *message) {
   }
 }
 
-void Bot::sendIp(const string &realIp) {
+void Bot::sendIp(const std::string &realIp) {
   char data[MAXLINE];
   snprintf(data, sizeof(data), "\xff\xff\xff\xff" "ip 0 %s", realIp.c_str());
 
@@ -592,7 +592,7 @@ void Bot::updateState() {
     currentState = None;
     break;
   case Begin: {
-    stringstream ss;
+    std::stringstream ss;
     ss << "begin " << spawnCount;
     requestStringCommand(ss.str().c_str());
     requestStringCommand("setinfo \"chat\" \"\"", 2);
@@ -649,8 +649,8 @@ void Bot::setInfo() {
   s.writeString("setinfo emodel 6967");
   s.writeByte(0);
 
-  stringstream ss;
-  string mapChecksum2 = "-756178370";
+  std::stringstream ss;
+  std::string mapChecksum2 = "-756178370";
 
   if (mapChecksums.find(mapName) != mapChecksums.end()) {
     mapChecksum2 = mapChecksums.at(mapName);
@@ -721,7 +721,7 @@ void Bot::createCommand(Message *s) {
 }
 
 void Bot::think() {
-  static string previousDescription;
+  static std::string previousDescription;
 
   for (int i = 0; i < UPDATE_BACKUP; i++) {
     nullCommand(&cmds[i]);
@@ -749,7 +749,7 @@ void Bot::think() {
 
     if (goal != nullptr) {
       goal->update();
-      string description = goal->description();
+      std::string description = goal->description();
       if (previousDescription != description) {
         LOG << "Bot is " << description << " maxScore " << maxScore;
       }
@@ -781,11 +781,11 @@ void Bot::think() {
   }
 }
 
-void Bot::requestStringCommand(string value) {
+void Bot::requestStringCommand(std::string value) {
   requestStringCommand(value, 1);
 }
 
-void Bot::requestStringCommand(string value, double delay) {
+void Bot::requestStringCommand(std::string value, double delay) {
   Message sendMsg;
   sendMsg.delay = 0;
   sendMsg.writeByte(clc_stringcmd);

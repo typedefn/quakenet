@@ -23,14 +23,14 @@ void PrintMessage::read(Message *message) {
 //  vector<string> lines;
 //
 
-  string line = message->readString();
+  std::string line = message->readString();
 
 //  lines.push_back(line1);
 //  LOG << "Level " << level << " LINE " << line;
 
-  if (lastLine.find("krupt_drv") != string::npos && line.find("has joined Team No") != string::npos) {
+  if (lastLine.find("krupt_drv") != std::string::npos && line.find("has joined Team No") != std::string::npos) {
     bot->setState(SelectClass);
-  } else if (lastLine.find("krupt_drv") != string::npos && line.find("joined!") != string::npos) {
+  } else if (lastLine.find("krupt_drv") != std::string::npos && line.find("joined!") != std::string::npos) {
     bot->setState(JoinTeam);
   }
 

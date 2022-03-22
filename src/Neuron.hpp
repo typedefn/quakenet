@@ -19,12 +19,12 @@ public:
     return numberOfInputs;
   }
   
-  vector<double> & getWeights() {
+  std::vector<double> & getWeights() {
     return weights;
   }
   
 private:
-  vector<double> weights;
+  std::vector<double> weights;
   int numberOfInputs;
 };
 

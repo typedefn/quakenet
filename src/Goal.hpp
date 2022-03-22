@@ -16,7 +16,7 @@ public:
   virtual ~Goal() {}
   virtual void update() = 0;
   virtual double calculateDesirability() = 0;
-  virtual string description() const = 0;
+  virtual std::string description() const = 0;
 
 protected:
   Bot *owner;
@@ -24,7 +24,7 @@ protected:
   double currentTime;
   int sign;
 
-  vector<unique_ptr<Goal>> goals;
+  std::vector<std::unique_ptr<Goal>> goals;
 };
 
 
