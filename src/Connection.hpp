@@ -75,7 +75,7 @@ public:
     return data.size();
   }
   
-  const vector<byte> & getData() const {
+  const std::vector<byte> & getData() const {
     return data;
   }
   
@@ -108,7 +108,7 @@ private:
   bool msgBadRead;
   bool allowOverflow;
   bool overflowed;
-  vector<byte> data;
+  std::vector<byte> data;
   int maxSize;
   int curSize;
   bool connectionless;

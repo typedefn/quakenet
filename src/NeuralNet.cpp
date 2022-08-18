@@ -40,13 +40,13 @@ void NeuralNet::createNet() {
 
 }
 
-vector<double> NeuralNet::update(vector<double>& inputs) {
-    vector<double> outputs;
+std::vector<double> NeuralNet::update(std::vector<double>& inputs) {
+    std::vector<double> outputs;
 
     int weightCount = 0;
 
     if (inputs.size() != numInputs) {
-        cout << "ANN error input.size != numInputs" << endl;
+        std::cout << "ANN error input.size != numInputs" << std::endl;
         return outputs;
     }
 
@@ -63,7 +63,7 @@ vector<double> NeuralNet::update(vector<double>& inputs) {
             int numInputs = layers.at(i).getNeurons().at(j).getNumberOfInputs();
 
             if (numInputs != inputs.size()) {
-                cout << "ANN error numInputs != inputs.size()" << endl;
+                std::cout << "ANN error numInputs != inputs.size()" << std::endl;
                 return outputs;
             }
             
@@ -87,8 +87,8 @@ double NeuralNet::sigmoid(double activation, double response) {
     return o;
 }
 
-vector<double> NeuralNet::getWeights() {
-    vector<double> weights;
+std::vector<double> NeuralNet::getWeights() {
+    std::vector<double> weights;
 
     for (int i = 0; i < hiddenLayers + 1; i++) {
         for (int j = 0; j < layers.at(i).getNumNeurons(); ++j) {
@@ -103,12 +103,12 @@ vector<double> NeuralNet::getWeights() {
     return weights;
 }
 
-void NeuralNet::putWeights(const vector<double>& weights) {
+void NeuralNet::putWeights(const std::vector<double>& weights) {
     int sz = weights.size();
     int index = 0;
 
     if (sz != numberOfTotalWeights) {
-        cout << "ANN Cannot continue weights are not equal, expecting " << numberOfTotalWeights << " but got " << sz << endl;
+        std::cout << "ANN Cannot continue weights are not equal, expecting " << numberOfTotalWeights << " but got " << sz << std::endl;
         return;
     }
 
@@ -126,8 +126,8 @@ void NeuralNet::putWeights(const vector<double>& weights) {
     }
 }
 
-vector<int> NeuralNet::calcSplitPoints() {
-    vector<int> splitPoints;
+std::vector<int> NeuralNet::calcSplitPoints() {
+    std::vector<int> splitPoints;
 
     int weightCounter = 0;
 

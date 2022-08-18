@@ -22,7 +22,7 @@ void PatrolGoal::update() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
-  vector<vec3> waypoints = owner->getWaypoints()["start"];
+  std::vector<glm::vec3> waypoints = owner->getWaypoints()["start"];
 
   static int wi = 0;
   const float maxDistance = 50.0;

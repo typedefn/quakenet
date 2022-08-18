@@ -21,10 +21,9 @@ TargetingSystem::~TargetingSystem() {
 void TargetingSystem::update() {
 	double closestDistanceSoFar = 999999999.0;
 
-	list<int> entities =
+	std::list<int> entities =
 			owner->getBotMemory()->getListOfRecentlySensedEntities();
   PlayerInfo *m = owner->getMe();
-
 	for (const auto id : entities) {
 		PlayerInfo *p = owner->getPlayerBySlot(id);
 
@@ -54,7 +53,7 @@ bool TargetingSystem::isTargetWithinFov() const {
 	return owner->getBotMemory()->isWithinFov(currentTarget);
 }
 
-vec3 TargetingSystem::getLastRecordedPosition() const {
+glm::vec3 TargetingSystem::getLastRecordedPosition() const {
   if (currentTarget < 0) {
 //    LOG << " Current target < 0";
   }

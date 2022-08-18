@@ -20,32 +20,32 @@ StuffTextMessage::~StuffTextMessage() {
 
 void StuffTextMessage::read(Message *message) {
 
-  string msg(message->readString());
-  vector<string> lines = Utility::split(msg, '\n');
+  std::string msg(message->readString());
+  std::vector<std::string> lines = Utility::split(msg, '\n');
 
-  for (const string &line : lines) {
-    vector<string> tokens = Utility::split(line, ' ');
+  for (const std::string &line : lines) {
+    std::vector<std::string> tokens = Utility::split(line, ' ');
 
     if(tokens.empty()) {
       continue;
     }
 
-    string token = tokens.at(0);
+    std::string token = tokens.at(0);
 
     if (token == "packet") {
-      string realIp = tokens.at(4);
+      std::string realIp = tokens.at(4);
       realIp.pop_back();
       bot->sendIp(realIp);
     } else if (token == "cmd") {
 
-      string type = tokens.at(1);
+      std::string type = tokens.at(1);
 
       if (type == "pext") {
         bot->sendExtensions();
       } else if (type == "new") {
         bot->sendNew();
       } else if (type == "spawn" || type == "prespawn") {
-        stringstream ss;
+        std::stringstream ss;
         ss << type << " " << tokens.at(2) << " " << tokens.at(3);
         bot->requestStringCommand(ss.str());
       }

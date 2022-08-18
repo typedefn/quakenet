@@ -45,15 +45,12 @@ public:
   static unsigned short CRC_Block(byte *start, unsigned int count);
   static byte crcByte(byte *base, int length, int sequence);
 
-  static string findValue(const string &key, const string &map);
+  static std::string findValue(const std::string &key, const std::string &map);
 
   static int randomRanged(int a, int b);
   static double randomFloat();
   static int getRandomNormal();
-  static void loadMap(const string & path, int *mapchecksum, int *mapchecksum2);
-
-  static int littleLong(int l);
-  static float littleFloat(float l);
+  static void loadMap(const std::string & path, int *mapchecksum, int *mapchecksum2);
 
 
   static short shortSwap (short s);
@@ -62,6 +59,11 @@ public:
 
   static std::vector<std::string> split(std::string str, char delimiter);
   static int makeChar(int i);
+  static int littleLong(int l);
+  static float littleFloat(float l);
+
+  static std::string readFile(const std::string & filename);
+  static void swap(float & a, float & b);
 private:
 
 };

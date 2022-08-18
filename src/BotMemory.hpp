@@ -32,18 +32,18 @@ public:
 private:
 	Bot *owner;
 
-	map<int, MemoryRecord> memoryMap;
+	std::map<int, MemoryRecord> memoryMap;
 
 	double memorySpan;
 	double angleToTarget;
 
 public:
 	bool isWithinFov(int id);
-	vec3 getLastSensedPosition(int id);
+	glm::vec3 getLastSensedPosition(int id);
 	double getTimeEntityHasBeenVisible(int id) const;
 	double getTimeEntityHasBeenOutOfFov(int id) const;
 	// list of all the entities that had their records updated within the last memorySpan seconds.
-	list<int> getListOfRecentlySensedEntities();
+	std::list<int> getListOfRecentlySensedEntities();
 };
 
 #endif /* BOTMEMORY_HPP_ */

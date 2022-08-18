@@ -83,7 +83,7 @@ int Connection::send(Message msg) {
 
 int Connection::sendInner(Message *msg) {
 
-  stringstream ss;
+  std::stringstream ss;
 
   ss << "Sending[";
   for (int i = 0; i < msg->data.size(); i++) {
@@ -134,7 +134,7 @@ bool Connection::recv(Message *msg, bool block) {
       LOG << "Failed to recv from socket. errno = " << errno;
       return false;
     }
-    stringstream ss;
+    std::stringstream ss;
     ss << "Recv: ";
 
     for (int i = 0; i < n; i++) {

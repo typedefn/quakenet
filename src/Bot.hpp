@@ -51,8 +51,8 @@ private:
 
   long spawnCount;
 
-  string mapName;
-  string gameDir;
+  std::string mapName;
+  std::string gameDir;
 
   Command nullcmd;
   Command cmds[UPDATE_BACKUP];
@@ -62,15 +62,15 @@ private:
   TsQueue<Message> outputQueue;
   TsQueue<Message> inputQueue;
 
-  map<string, vector<glm::vec3>> waypoints;
+  std::map<std::string, std::vector<glm::vec3>> waypoints;
 
   std::thread thinker;
 
-  unique_ptr<BotMemory> botMemory;
-  unique_ptr<TargetingSystem> targetingSystem;
+  std::unique_ptr<BotMemory> botMemory;
+  std::unique_ptr<TargetingSystem> targetingSystem;
 
-  map<string, string> mapChecksums;
-  vector<unique_ptr<Goal>> goals;
+  std::map<std::string, std::string> mapChecksums;
+  std::vector<std::unique_ptr<Goal>> goals;
 
   int delay;
 
@@ -79,10 +79,10 @@ private:
   int stats[MAX_CL_STATS];
 
 
-  mutex infoLock;
-  mutex statLock;
+  std::mutex infoLock;
+  std::mutex statLock;
 
-  map<byte, unique_ptr<ServerMessage>> serverMessages;
+  std::map<byte, std::unique_ptr<ServerMessage>> serverMessages;
   unsigned protoVer;
   int mySlot;
   bool gotChallenge;
@@ -91,7 +91,7 @@ private:
   Goal *goal;
   int ahead;
 
-  map<string, double> timers;
+  std::map<std::string, double> timers;
 
   double currentTime;
   double previousTime;
@@ -99,7 +99,7 @@ private:
 public:
   void nullCommand(Command *cmd);
 
-  string getMapCheckSum(string key) {
+  std::string getMapCheckSum(std::string key) {
     return mapChecksums[key];
   }
 
@@ -141,7 +141,7 @@ public:
   double getTime();
   void getChallenge();
   void parseServerMessage(Message *message);
-  void sendIp(const string &realIp);
+  void sendIp(const std::string &realIp);
   void sendExtensions();
   void sendNew();
   void updateState();
@@ -153,8 +153,8 @@ public:
   void sendDisableChat();
   void createCommand(Message *s);
   void think();
-  void requestStringCommand(string value);
-  void requestStringCommand(string value, double delay);
+  void requestStringCommand(std::string value);
+  void requestStringCommand(std::string value, double delay);
   void parseStatic(Message *msg, bool extended);
   void parseBaseline(Message *msg);
   void parseBeam(Message *msg, int type);
@@ -184,7 +184,7 @@ public:
     return &cmds[0];
   }
 
-  map<string, vector<glm::vec3>> getWaypoints() const {
+  std::map<std::string, std::vector<glm::vec3>> getWaypoints() const {
     return waypoints;
   }
 
@@ -192,15 +192,15 @@ public:
     this->spawnCount = v;
   }
 
-  void setGameDir(const string &v) {
+  void setGameDir(const std::string &v) {
     this->gameDir = v;
   }
 
-  string getGameDir() {
+  std::string getGameDir() {
     return this->gameDir;
   }
 
-  void setMapName(const string &v) {
+  void setMapName(const std::string &v) {
     this->mapName = v;
   }
 

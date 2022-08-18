@@ -57,14 +57,14 @@ byte Utility::crcByte(byte *base, int length, int sequence) {
   return crc;
 }
 
-string Utility::findValue(const string &key, const string &map) {
-  stringstream ss;
+std::string Utility::findValue(const std::string &key, const std::string &map) {
+  std::stringstream ss;
   ss << "\\" << key;
 
   size_t found = map.find(ss.str());
-  string value;
+  std::string value;
 
-  if (found == string::npos) {
+  if (found == std::string::npos) {
     return value;
   }
 
@@ -108,10 +108,10 @@ int Utility::getRandomNormal() {
 
   return sign;
 }
-void Utility::loadMap(const string &path, int *mapchecksum, int *mapchecksum2) {
+void Utility::loadMap(const std::string &path, int *mapchecksum, int *mapchecksum2) {
   unsigned int i = 0;
   byte *cmodBase = nullptr;
-  ifstream file(path, ios::binary | ios::ate);
+  std::ifstream file(path, std::ios::binary | std::ios::ate);
   FILE *f = fopen(path.c_str(), "r");
   size_t filesize = file.tellg();
   Header *header = nullptr;
@@ -281,3 +281,22 @@ int Utility::makeChar(int i)
 }
 
 
+std::string Utility::readFile(const std::string &filename) {
+  std::ifstream file;
+  std::string contents;
+  std::string line;
+  file.open(filename);
+  if (file.is_open()) {
+    while (getline(file, line)) {
+      contents += line + "\n";
+    }
+    file.close();
+  }
+  return contents;
+}
+
+void Utility::swap(float & a, float & b) {
+  float c = a;
+  a = b;
+  b = c;
+}

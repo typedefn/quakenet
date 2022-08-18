@@ -24,14 +24,14 @@ public:
     return numNeurons;
   }
   
-  vector<Neuron> & getNeurons() {
+  std::vector<Neuron> & getNeurons() {
     return neurons;
   }
   
 private:
   int numInputsPerNeuron;
   int numNeurons;
-  vector<Neuron> neurons;
+  std::vector<Neuron> neurons;
 };
 
 #endif /* NEURONLAYER_HPP */

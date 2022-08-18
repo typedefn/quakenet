@@ -19,7 +19,7 @@ public:
   virtual ~PatrolGoal();
   void update();
   double calculateDesirability();
-  string description() const {
+  std::string description() const {
     return "Patrolling";
   }
 private:

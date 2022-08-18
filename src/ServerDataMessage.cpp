@@ -64,7 +64,7 @@ void ServerDataMessage::read(Message *message) {
   }
 
   // Get level description
-  string levelDescription1 = message->readString();
+  std::string levelDescription1 = message->readString();
 //  LOG << "Level description " << levelDescription1;
 
 

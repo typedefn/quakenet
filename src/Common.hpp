@@ -36,12 +36,14 @@
 #include <list>
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/matrix_interpolation.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/closest_point.hpp>
+#include <glm/glm.hpp>
 
 #include "Logger.hpp"
-
-using namespace std;
-using namespace glm;
-
 
 #endif /* COMMON_HPP */
 

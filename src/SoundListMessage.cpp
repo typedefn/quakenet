@@ -42,7 +42,7 @@ void SoundListMessage::read(Message *message) {
     n = message->readByte();
 
     if (n) {
-      stringstream ss;
+      std::stringstream ss;
       ss << "soundlist" << " " << 1 << " " << n;
       bot->requestStringCommand(ss.str());
       return;

@@ -18,18 +18,18 @@ public:
   
   void createNet();
   
-  vector<double> getWeights();
+  std::vector<double> getWeights();
   
   int getNumberOfWeights() const {
     return numberOfTotalWeights;
   }
   
-  void putWeights(const vector<double> &weights);
+  void putWeights(const std::vector<double> &weights);
   
   inline double sigmoid(double activation, double response);
   
-  vector<double> update(vector<double> &inputs);
-  vector<int> calcSplitPoints();
+  std::vector<double> update(std::vector<double> &inputs);
+  std::vector<int> calcSplitPoints();
   
   static int numOutputs;
 private:
@@ -40,7 +40,7 @@ private:
   double bias;
   int numberOfTotalWeights;
   
-  vector<NeuronLayer> layers;
+  std::vector<NeuronLayer> layers;
 
   
 };

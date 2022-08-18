@@ -18,7 +18,7 @@ public:
   virtual ~StrafeGoal();
   void update();
   double calculateDesirability();
-  string description() const {
+  std::string description() const {
     return "Strafing";
   }
 private:
