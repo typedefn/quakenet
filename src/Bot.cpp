@@ -6,12 +6,11 @@
  */
 
 #include "Bot.hpp"
-#include "Gene.hpp"
 
 Bot::Bot(char **argv) {
   ahead = 1;
   protoVer = 0;
-  delay = 5000;
+  delay = 10000;
   challenge = 0;
   frame = 0;
   mySlot = -1;
@@ -19,9 +18,10 @@ Bot::Bot(char **argv) {
   this->botMemory = std::make_unique<BotMemory>(this, 8);
   this->targetingSystem = std::make_unique<TargetingSystem>(this);
 
-  goals.push_back(std::make_unique<PatrolGoal>(this));
-  goals.push_back(std::make_unique<SeekGoal>(this));
-  goals.push_back(std::make_unique<AttackGoal>(this));
+//  goals.push_back(std::make_unique<PatrolGoal>(this));
+//  goals.push_back(std::make_unique<SeekGoal>(this));
+//  goals.push_back(std::make_unique<AttackGoal>(this));
+//  goals.push_back(std::make_unique<RoamGoal>(this));
 
   for (int i = 0; i < MAX_CLIENTS; i++) {
     players[i].coords[0] = 0;
@@ -45,15 +45,6 @@ Bot::Bot(char **argv) {
     players[i].direction = glm::vec3(0, 0, 0);
   }
   this->argv = argv;
-
-  // TODO: Put these checksums in a map checksum file.
-  // Already have a loadMap utility method that gets the checksums of files.
-  mapChecksums["ultrav"] = "360735597";
-  mapChecksums["1on1r"] = "-756178370";
-  mapChecksums["skull666"] = "-1518401826";
-  mapChecksums["areowalk"] = "-638279197";
-  mapChecksums["ztndm3"] = "-1723650232";
-  mapChecksums["bravado"] = "-1859843008";
 
   waypoints[""] = std::vector<glm::vec3>();
   waypoints["patrol"] = std::vector<glm::vec3>();
@@ -90,6 +81,7 @@ Bot::Bot(char **argv) {
   timers["button"] = 0;
   timers["prime"] = 0;
   primeCounter = 0;
+  timers["stuck"] = MAX_TIMEOUT_IN_SECONDS;
 }
 
 Bot::~Bot() {
@@ -127,18 +119,19 @@ void Bot::mainLoop() {
   fs.close();
 
   currentTime = getTime();
-  previousTime = 0;
+  previousTime = getTime();
 
   bool received = false;
+  running = true;
 
-  while (1) {
+  while (running) {
     int s = 0;
     previousTime = currentTime;
     currentTime = getTime();
 
     Message inMessage;
 
-    if (connection.recv(&inMessage, false)) {
+    if (connection.recv(&inMessage)) {
       if (connection.process(&inMessage)) {
         parseServerMessage(&inMessage);
       }
@@ -165,14 +158,18 @@ void Bot::mainLoop() {
     // Prevent CPU hogging.
     usleep(delay);
   }
+
+  requestStringCommand("drop");
+  Message dropMsg = outputQueue.front();
+  connection.send(dropMsg);
 }
 
 PlayerInfo* Bot::getPlayerBySlot(size_t id) {
   PlayerInfo *pi = nullptr;
 
-  infoLock.lock();
+//  infoLock.lock();
   pi = &players[id];
-  infoLock.unlock();
+//  infoLock.unlock();
 
   return pi;
 }
@@ -210,52 +207,52 @@ void Bot::getChallenge() {
 
   while (!gotChallenge) {
     msg.clear();
-    if (connection.recv(&msg, false)) {
+    if (connection.recv(&msg)) {
 
       msg.beginRead();
       msg.readLong();
       c = msg.readByte();
 
       switch (c) {
-      case S2C_CHALLENGE: {
-        char data[MAXLINE] = { 0 };
-        char userInfo[MAX_INFO_STRING + 32] = { 0 };
-        challenge = atoi(msg.readString());
+        case S2C_CHALLENGE: {
+          char data[MAXLINE] = { 0 };
+          char userInfo[MAX_INFO_STRING + 32] = { 0 };
+          challenge = atoi(msg.readString());
 
-        for (;;) {
-          c = msg.readLong();
-          if (msg.isBadRead()) {
-            break;
+          for (;;) {
+            c = msg.readLong();
+            if (msg.isBadRead()) {
+              break;
+            }
+
+            // Read proto version info...
+            msg.readLong();
           }
-
-          // Read proto version info...
-          msg.readLong();
+          strcpy(userInfo, "\\rate\\100000\\name\\krupt_drv\\*client\\dumbo1234\\*z_ext\\511");
+          snprintf(data, sizeof(data), "\xff\xff\xff\xff" "connect %d %d %i \"%s\"\n",
+          PROTOCOL_VERSION, connection.getQport(), challenge, userInfo);
+          Message s;
+          s.writeString(data);
+          s.writeString("0x58455446 0x2140f000");
+          s.writeByte(10);
+          s.writeString("0x32455446 0x2");
+          s.writeByte(10);
+          s.writeString("0x3144564d 0x1");
+          s.writeByte(10);
+          connection.sendConnectionless(s);
+          break;
         }
-        strcpy(userInfo, "\\rate\\100000\\name\\krupt_drv\\*client\\dumbo1234\\*z_ext\\511");
-        snprintf(data, sizeof(data), "\xff\xff\xff\xff" "connect %d %d %i \"%s\"\n",
-        PROTOCOL_VERSION, connection.getQport(), challenge, userInfo);
-        Message s;
-        s.writeString(data);
-        s.writeString("0x58455446 0x2140f000");
-        s.writeByte(10);
-        s.writeString("0x32455446 0x2");
-        s.writeByte(10);
-        s.writeString("0x3144564d 0x1");
-        s.writeByte(10);
-        connection.sendConnectionless(s);
-        break;
-      }
-      case S2C_CONNECTION: {
-        sendNew();
-        sendImpulse(0, 0);
-        sendImpulse(0, 0);
-        sendNew();
-        gotChallenge = true;
-        break;
-      }
-      default: {
-        break;
-      }
+        case S2C_CONNECTION: {
+          sendNew();
+          sendImpulse(0, 0);
+          sendImpulse(0, 0);
+          sendNew();
+          gotChallenge = true;
+          break;
+        }
+        default: {
+          break;
+        }
       }
     }
   }
@@ -285,162 +282,163 @@ void Bot::parseServerMessage(Message *message) {
       // Keep continue here until all the switch messages types have been converted.
       continue;
     }
-
+//    LOG << cmd;
     // TODO old switch statement, needs to be wrapped into classes.
     switch (cmd) {
-    case svc_fte_spawnstatic2: {
-      // Static entities are non-interactive world objects like torches.
-      parseStatic(message, true);
-      break;
-    }
-    case svc_fte_spawnbaseline2: {
-      parseBaseline2(message);
-      break;
-    }
-    case nq_svc_time: {
-      message->readFloat();
-      break;
-    }
-    case nq_svc_updatename: {
-      message->readByte();
-      message->readString();
-      break;
-    }
-    case svc_intermission: {
-      float orig[3] = { };
-      float angles[3] = { };
-
-      for (int i = 0; i < 3; i++) {
-        orig[i] = message->readCoord();
-      }
-
-      for (int i = 0; i < 3; i++) {
-        angles[i] = message->readFloat();
-      }
-
-      break;
-    }
-    case svc_muzzleflash: {
-      int i = message->readShort();
-      break;
-    }
-    case svc_finale: {
-      message->readString();
-      break;
-    }
-    case nq_svc_version: {
-      message->readLong();
-      break;
-    }
-    case svc_centerprint: {
-      message->readString();
-      break;
-    }
-    case svc_setpause: {
-      message->readByte();
-      break;
-    }
-    case svc_updatefrags: {
-      unsigned slot = message->readByte();
-      if (slot >= MAX_CLIENTS) {
+      case svc_fte_spawnstatic2: {
+        // Static entities are non-interactive world objects like torches.
+        parseStatic(message, true);
         break;
       }
-
-      PlayerInfo *pi = getPlayerBySlot(slot);
-      pi->frags = message->readShort();
-
-      break;
-    }
-    case svc_updateping: {
-      int slot = message->readByte();
-      int ping = message->readShort();
-      break;
-    }
-    case svc_updatepl: {
-      message->readByte();
-      message->readByte();
-      break;
-    }
-    case svc_updateentertime: {
-      message->readByte();
-      message->readFloat();
-      break;
-    }
-    case svc_maxspeed: {
-      message->readFloat();
-      break;
-    }
-    case svc_entgravity: {
-      message->readFloat();
-      break;
-    }
-    case svc_serverinfo: {
-      std::string key = message->readString();
-      std::string value = message->readString();
-      break;
-    }
-    case svc_cdtrack: {
-      byte cdTrack = message->readByte();
-      break;
-    }
-    case svc_lightstyle: {
-      message->readByte();
-      message->readString();
-      break;
-    }
-    case svc_updatestatlong: {
-      byte i = message->readByte();
-      long j = message->readLong();
-      if (i >= 0 && i < MAX_CL_STATS) {
-        setStat(i, j);
+//      case svc_fte_spawnbaseline2: {
+//        parseBaseline2(message);
+//        break;
+//      }
+      case nq_svc_time: {
+        message->readFloat();
+        break;
       }
-      break;
-    }
-    case svc_setangle: {
-      float x = message->readChar() * (360.0 / 256);
-      float y = message->readChar() * (360.0 / 256);
-      float z = message->readChar() * (360.0 / 256);
-      break;
-    }
-    case svc_damage: {
-      int armor_ = message->readByte();
-      int blood_ = message->readByte();
-      float coords[3];
-      float distanceToMe;
-      float distanceToTarget;
-
-      for (int i = 0; i < 3; i++) {
-        coords[i] = message->readCoord();
+      case nq_svc_updatename: {
+        message->readByte();
+        message->readString();
+        break;
       }
+      case svc_intermission: {
+        float orig[3] = { };
+        float angles[3] = { };
 
-      glm::vec3 from(coords[0], coords[2], coords[1]);
-      break;
-    }
-    case svc_sound: {
-      float pos[3] = { };
-      byte channel = message->readByte();
-      byte soundNumber = message->readByte();
+        for (int i = 0; i < 3; i++) {
+          orig[i] = message->readCoord();
+        }
 
-      for (int i = 0; i < 3; i++) {
-        pos[i] = message->readCoord();
+        for (int i = 0; i < 3; i++) {
+          angles[i] = message->readFloat();
+        }
+
+        break;
       }
+      case svc_muzzleflash: {
+        int i = message->readShort();
+        break;
+      }
+      case svc_finale: {
+        message->readString();
+        break;
+      }
+      case nq_svc_version: {
+        message->readLong();
+        break;
+      }
+      case svc_centerprint: {
+        message->readString();
+        break;
+      }
+      case svc_setpause: {
+        message->readByte();
+        break;
+      }
+      case svc_updatefrags: {
+        unsigned slot = message->readByte();
+        if (slot >= MAX_CLIENTS) {
+          break;
+        }
 
-      break;
-    }
-    case svc_stopsound: {
-      message->readShort();
-      break;
-    }
+        PlayerInfo *pi = getPlayerBySlot(slot);
+        pi->frags = message->readShort();
 
-    case svc_spawnbaseline: {
-      message->readShort();
-      parseBaseline(message);
-      break;
-    }
-    case svc_spawnstatic: {
-      parseStatic(message, false);
-      break;
-    }
+        break;
+      }
+      case svc_updateping: {
+        int slot = message->readByte();
+        int ping = message->readShort();
+        break;
+      }
+      case svc_updatepl: {
+        message->readByte();
+        message->readByte();
+        break;
+      }
+      case svc_updateentertime: {
+        message->readByte();
+        message->readFloat();
+        break;
+      }
+      case svc_maxspeed: {
+        message->readFloat();
+        break;
+      }
+      case svc_entgravity: {
+        message->readFloat();
+        break;
+      }
+      case svc_serverinfo: {
+        std::string key = message->readString();
+        std::string value = message->readString();
+        break;
+      }
+      case svc_cdtrack: {
+        byte cdTrack = message->readByte();
+        break;
+      }
+      case svc_lightstyle: {
+        message->readByte();
+        message->readString();
+        break;
+      }
+      case svc_updatestatlong: {
+        byte i = message->readByte();
+        long j = message->readLong();
+//        LOG << "svc updatestat long = " << (int)i << " value = " << (int)j;
+        if (i >= 0 && i < MAX_CL_STATS) {
+          setStat(i, j);
+        }
+        break;
+      }
+//      case svc_setangle: {
+//        float x = message->readChar() * (360.0 / 256);
+//        float y = message->readChar() * (360.0 / 256);
+//        float z = message->readChar() * (360.0 / 256);
+//        break;
+//      }
+//      case svc_damage: {
+//        int armor_ = message->readByte();
+//        int blood_ = message->readByte();
+//        float coords[3];
+//        float distanceToMe;
+//        float distanceToTarget;
+//
+//        for (int i = 0; i < 3; i++) {
+//          coords[i] = message->readCoord();
+//        }
+//
+//        glm::vec3 from(coords[0], coords[2], coords[1]);
+//        break;
+//      }
+//      case svc_sound: {
+//        float pos[3] = { };
+//        byte channel = message->readByte();
+//        byte soundNumber = message->readByte();
+//
+//        for (int i = 0; i < 3; i++) {
+//          pos[i] = message->readCoord();
+//        }
+//
+//        break;
+//      }
+//      case svc_stopsound: {
+//        message->readShort();
+//        break;
+//      }
+//
+//      case svc_spawnbaseline: {
+//        message->readShort();
+//        parseBaseline(message);
+//        break;
+//      }
+      case svc_spawnstatic: {
+        parseStatic(message, false);
+        break;
+      }
 //    case svc_temp_entity: {
 //      float pos[3] = { };
 //      bool parsed = false;
@@ -513,14 +511,14 @@ void Bot::parseServerMessage(Message *message) {
 //
 //      break;
 //    }
-    case svc_chokecount: {
-      int count = message->readByte();
-      break;
-    }
-    case svc_deltapacketentities: {
-      parsePacketEntities(message, true);
-      break;
-    }
+      case svc_chokecount: {
+        int count = message->readByte();
+        break;
+      }
+      case svc_deltapacketentities: {
+        parsePacketEntities(message, true);
+        break;
+      }
 //    case svc_qizmovoice: {
 //      int i;
 //      message->readByte();
@@ -532,9 +530,9 @@ void Bot::parseServerMessage(Message *message) {
 //      break;
 //    }
 
-    default: {
-      break;
-    }
+      default: {
+        break;
+      }
     }
   }
 }
@@ -580,60 +578,60 @@ void Bot::updateState() {
   previousState = currentState;
 
   switch (currentState) {
-  case New:
-    sendNew();
-    currentState = None;
-    break;
-  case Info:
-    setInfo();
-    currentState = None;
-    break;
-  case Prespawn:
-    currentState = None;
-    break;
-  case Begin: {
-    std::stringstream ss;
-    ss << "begin " << spawnCount;
-    requestStringCommand(ss.str().c_str());
-    requestStringCommand("setinfo \"chat\" \"\"", 2);
-    currentState = None;
-    break;
-  }
-  case JoinTeam: {
-    // Assuming it is fortress gamedir now.
-    timers["state"] += (currentTime - previousTime);
-    if (timers["state"] > 1) {
-      sendImpulse(1, 2);
-      timers["state"] = 0;
+    case New:
+      sendNew();
       currentState = None;
-    }
-    break;
-  }
-  case SelectClass: {
-    timers["state"] += (currentTime - previousTime);
-    if (timers["state"] > 1) {
-      sendImpulse(3, 2);
-      timers["state"] = 0;
+      break;
+    case Info:
+      setInfo();
       currentState = None;
+      break;
+    case Prespawn:
+      currentState = None;
+      break;
+    case Begin: {
+      std::stringstream ss;
+      ss << "begin " << spawnCount;
+      requestStringCommand(ss.str().c_str());
+      requestStringCommand("setinfo \"chat\" \"\"", 2);
+      currentState = None;
+      break;
     }
-    break;
-  }
-  case DisableChat:
-    break;
-  case Done: {
-    requestStringCommand("setinfo \"bottomcolor\" \"13\"", 2);
-    requestStringCommand("setinfo \"team\" \"blue\"", 0);
-    requestStringCommand("setinfo \"skin\" \"tf_sold\"", 2);
-    delay = 20;
-    connection.handshakeComplete();
-    currentState = None;
-    for (int i = 0; i < UPDATE_BACKUP; i++) {
-      nullCommand(&cmds[i]);
+    case JoinTeam: {
+      // Assuming it is fortress gamedir now.
+      timers["state"] += (currentTime - previousTime);
+      if (timers["state"] > 1) {
+        sendImpulse(1, 2);
+        timers["state"] = 0;
+        currentState = None;
+      }
+      break;
     }
-    break;
-  }
-  default:
-    break;
+    case SelectClass: {
+      timers["state"] += (currentTime - previousTime);
+      if (timers["state"] > 1) {
+        sendImpulse(3, 2);
+        timers["state"] = 0;
+        currentState = None;
+      }
+      break;
+    }
+    case DisableChat:
+      break;
+    case Done: {
+      requestStringCommand("setinfo \"bottomcolor\" \"13\"", 2);
+      requestStringCommand("setinfo \"team\" \"blue\"", 0);
+      requestStringCommand("setinfo \"skin\" \"tf_sold\"", 2);
+      delay = 20;
+      connection.handshakeComplete();
+      currentState = None;
+      for (int i = 0; i < UPDATE_BACKUP; i++) {
+        nullCommand(&cmds[i]);
+      }
+      break;
+    }
+    default:
+      break;
   }
 
 }
@@ -650,15 +648,15 @@ void Bot::setInfo() {
   s.writeByte(0);
 
   std::stringstream ss;
-  std::string mapChecksum2 = "-756178370";
+  std::stringstream mapChecksum2;
+  int dummy = 0;
+  int checksum2 = 0;
+  std::stringstream mapss;
+  mapss << "../resources/maps/" << mapName << ".bsp";
+  Utility::loadMap(mapss.str(), &dummy, &checksum2);
+  mapChecksum2 << checksum2;
 
-  if (mapChecksums.find(mapName) != mapChecksums.end()) {
-    mapChecksum2 = mapChecksums.at(mapName);
-  } else {
-    LOG << "Failed to look up checksum for map " << mapName << ", using default for 1on1r";
-  }
-
-  ss << "prespawn " << spawnCount << " 0 " << mapChecksum2;
+  ss << "prespawn " << spawnCount << " 0 " << mapChecksum2.str();
   s.writeByte(clc_stringcmd);
   s.writeString(ss.str().c_str());
   s.writeByte(0);
@@ -733,9 +731,9 @@ void Bot::think() {
     LOG << " me == nullptr";
     return;
   }
-
-  botMemory->updateVision();
-  targetingSystem->update();
+//
+//  botMemory->updateVision();
+//  targetingSystem->update();
 
   if (getHealth() > 0) {
     double maxScore = -1.0;
@@ -758,7 +756,7 @@ void Bot::think() {
     }
   } else if (getHealth() <= 0) {
     targetingSystem->clearTarget();
-    clickButton(2);
+    clickButton(1);
   }
 
   /**
@@ -772,8 +770,8 @@ void Bot::think() {
   }
 
   timers["think"] += (currentTime - previousTime);
-  Command *command = &cmds[frame];
-  if (timers["think"] >= command->msec / 1000.0) {
+  Command *command = getCommand();
+  if (timers["think"] >= command->msec/1000.0f) {
     Message s;
     createCommand(&s);
     outputQueue.push(s);
@@ -944,14 +942,7 @@ void Bot::parseBaseline2(Message *msg) {
 }
 
 void Bot::moveForward(short speed) {
-
-  timers["forward"] += (currentTime - previousTime);
-  if (timers["forward"] > 1) {
-    cmds[frame].forwardMove = 0;
-    timers["forward"] = 0;
-  } else if (timers["forward"] > 0.2) {
-    cmds[frame].forwardMove = speed;
-  }
+  cmds[frame].forwardMove = speed;
 }
 
 void Bot::moveUp(short speed) {
@@ -974,10 +965,22 @@ void Bot::clickButton(int button) {
 
 void Bot::rotateY(int angle) {
   cmds[frame].angles[1] = angle;
+  this->angle.y = angle;
 }
 
 void Bot::rotateX(int angle) {
   cmds[frame].angles[0] = angle;
+  this->angle.x = angle;
+}
+
+int Bot::getAngleX() {
+  int a = this->angle.x;
+  return a;
+}
+
+int Bot::getAngleY() {
+  int a = this->angle.y;
+  return a;
 }
 
 void Bot::impulse(int impulse) {
@@ -993,7 +996,7 @@ void Bot::nullCommand(Command *cmd) {
   cmd->buttons = 0;
   cmd->forwardMove = 0;
   cmd->impulse = 0;
-  cmd->msec = 50 + (rand() % 20);
+  cmd->msec = 2;
   cmd->sideMove = 0;
   cmd->upMove = 0;
 }

@@ -7,8 +7,8 @@
 
 #ifndef UTILITY_HPP
 #define UTILITY_HPP
-#include "Protocol.hpp"
-#include "Common.hpp"
+#include <Protocol.hpp>
+#include <Common.hpp>
 #define LUMP_ENTITIES 0
 #define LUMP_PLANES   1
 #define LUMP_TEXTURES 2
@@ -57,13 +57,15 @@ public:
   static int longSwap (int l);
   static float floatSwap (float f);
 
-  static std::vector<std::string> split(std::string str, char delimiter);
   static int makeChar(int i);
+
   static int littleLong(int l);
   static float littleFloat(float l);
-
-  static std::string readFile(const std::string & filename);
+  static std::string readFile(const std::string &filename);
   static void swap(float & a, float & b);
+  static std::vector<std::string> split(std::string str, char delimiter);
+  static bool fileExists(const std::string & name);
+
 private:
 
 };

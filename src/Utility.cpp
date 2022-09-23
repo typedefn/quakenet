@@ -113,6 +113,12 @@ void Utility::loadMap(const std::string &path, int *mapchecksum, int *mapchecksu
   byte *cmodBase = nullptr;
   std::ifstream file(path, std::ios::binary | std::ios::ate);
   FILE *f = fopen(path.c_str(), "r");
+
+  if (f == nullptr) {
+    LOG << "Unable to find " << path;
+    throw std::runtime_error("Cannot open file");
+  }
+
   size_t filesize = file.tellg();
   Header *header = nullptr;
   bool padLumps = false;
@@ -200,22 +206,9 @@ void Utility::loadMap(const std::string &path, int *mapchecksum, int *mapchecksu
   delete[] buf;
 
   LOG << "Checksum for " << path << " is " << checksum << "/" << (int) checksum2;
+  *mapchecksum = checksum;
+  *mapchecksum2 = checksum2;
 }
-
-int Utility::littleLong(int l) {
-#if defined( __BIG_ENDIAN__ )
-  std::reverse( reinterpret_cast<unsigned char*>( &l ), reinterpret_cast<unsigned char*>( &l ) + sizeof( int ) );
-#endif
-  return l;
-}
-
-float Utility::littleFloat(float l) {
-#if defined( __BIG_ENDIAN__ )
-  std::reverse( reinterpret_cast<unsigned char*>( &l ), reinterpret_cast<unsigned char*>( &l ) + sizeof( float ) );
-#endif
-  return l;
-}
-
 
 short Utility::shortSwap (short s)
 {
@@ -260,16 +253,6 @@ float Utility::floatSwap (float f)
         return dat2.f;
 }
 
-std::vector<std::string> Utility::split(std::string str, char delimiter = ' ') {
-  std::vector<std::string> strings;
-  std::stringstream ss(str);
-  std::string s;
-  while (getline(ss, s, delimiter)) {
-    strings.push_back(s);
-  }
-  return strings;
-}
-
 int Utility::makeChar(int i)
 {
         i &= ~3;
@@ -279,6 +262,21 @@ int Utility::makeChar(int i)
                 i = 127 * 4;
         return i;
 }
+
+int Utility::littleLong(int l) {
+#if defined( __BIG_ENDIAN__ )
+  std::reverse( reinterpret_cast<unsigned char*>( &l ), reinterpret_cast<unsigned char*>( &l ) + sizeof( int ) );
+#endif
+  return l;
+}
+
+float Utility::littleFloat(float l) {
+#if defined( __BIG_ENDIAN__ )
+  std::reverse( reinterpret_cast<unsigned char*>( &l ), reinterpret_cast<unsigned char*>( &l ) + sizeof( float ) );
+#endif
+  return l;
+}
+
 
 
 std::string Utility::readFile(const std::string &filename) {
@@ -295,8 +293,23 @@ std::string Utility::readFile(const std::string &filename) {
   return contents;
 }
 
+std::vector<std::string> Utility::split(std::string str, char delimiter = ' ') {
+  std::vector<std::string> strings;
+  std::stringstream ss(str);
+  std::string s;
+  while (getline(ss, s, delimiter)) {
+    strings.push_back(s);
+  }
+  return strings;
+}
+
 void Utility::swap(float & a, float & b) {
   float c = a;
   a = b;
   b = c;
+}
+
+bool Utility::fileExists(const std::string & name) {
+  struct stat buffer;
+  return (stat(name.c_str(), &buffer) == 0);
 }

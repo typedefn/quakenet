@@ -105,19 +105,21 @@ int Connection::sendInner(Message *msg) {
   MSG_CONFIRM, (const struct sockaddr*) &servaddr, sizeof(servaddr));
 }
 
-bool Connection::recv(Message *msg, bool block) {
-  FD_ZERO(&readfds);
+bool Connection::recv(Message *msg) {
   socklen_t len = sizeof(servaddr);
-  FD_SET(sockfd, &readfds);
-  byte buffer[MAXLINE];
-  int n;
+  byte buffer[MAXLINE] = {};
+  int n = 0;
   int rv = 0;
   tv.tv_sec = 0;
   tv.tv_usec = 0;
-  if (!block) {
-    rv = select(sockfd + 1, &readfds, nullptr, nullptr, &tv);
-  } else {
-    rv = 1;
+  FD_ZERO(&readfds);
+  FD_SET(sockfd, &readfds);
+
+  rv = select(sockfd + 1, &readfds, nullptr, nullptr, &tv);
+
+  if (rv == -1) {
+    LOG << "Error in select";
+    return false;
   }
 
   if (rv == 1) {
@@ -156,6 +158,7 @@ bool Connection::recv(Message *msg, bool block) {
   }
 
   return false;
+
 }
 
 bool Connection::process(Message *msg) {
@@ -259,7 +262,6 @@ int Message::readShort() {
 float Message::readFloatCoord() {
   float f;
   readData(&f, 4);
-//          return littleFloat(f);
   return Utility::littleFloat(f);
 }
 

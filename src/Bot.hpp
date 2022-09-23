@@ -25,6 +25,7 @@
 #include <MessageTypes.hpp>
 
 #define MAX_GENOMES 127
+#define MAX_TIMEOUT_IN_SECONDS 5
 
 enum HandShakeState {
   None, New, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done
@@ -45,11 +46,14 @@ private:
 
   PlayerInfo players[MAX_CLIENTS];
   char **argv;
+  glm::vec3 angle;
 
   int challenge;
   int frame;
 
   long spawnCount;
+
+  bool running;
 
   std::string mapName;
   std::string gameDir;
@@ -170,6 +174,9 @@ public:
   void rotateY(int angle);
   void rotateX(int angle);
   void impulse(int impulse);
+
+  int getAngleY();
+  int getAngleX();
 
   TargetingSystem* getTargetingSystem() {
     return targetingSystem.get();

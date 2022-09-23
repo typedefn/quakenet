@@ -8,9 +8,9 @@
 
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
-#include "Common.hpp"
-#include "Protocol.hpp"
-#include "Utility.hpp"
+#include <Common.hpp>
+#include <Protocol.hpp>
+#include <Utility.hpp>
 
 //#define LOG_RECV_TRAFFIC 1
 //#define LOG_SEND_TRAFFIC 1
@@ -125,7 +125,7 @@ public:
   int send(Message msg);
   int sendConnectionless(Message msg);
   void close();
-  bool recv(Message * msg, bool block);
+  bool recv(Message * msg);
   bool process(Message *msg);
   int getQport() const {
     return qport;
