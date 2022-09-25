@@ -28,7 +28,7 @@ void UpdateUserInfoMessage::read(Message *message) {
   std::string value(message->readString());
   std::string name = Utility::findValue("name", value);
   // TODO: fix hardcoded name of bot later.
-  if (name == "krupt_drv") {
+  if (name == bot->getBotConfig().name) {
     LOG << "In slot " << slot << " with id " << userId;
     bot->setMySlot(slot);
     // Assuming it is fortress

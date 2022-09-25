@@ -19,6 +19,18 @@ Bot::Bot(char **argv) {
   this->targetingSystem = std::make_unique<TargetingSystem>(this);
 
   this->config = std::make_unique<Config>("../resources/settings.ini");
+  
+  std::string botSection = this->config->getString("main", "bot0");
+  botConfig.name = this->config->getString(botSection, "name");
+  botConfig.skin = this->config->getString(botSection, "skin");
+  botConfig.team = this->config->getString(botSection, "team");
+  botConfig.bottomColor = this->config->getString(botSection, "bottomcolor");
+  botConfig.waypoints["respawn0"].push_back(this->config->getVec3("respawn0", "p0"));
+  botConfig.waypoints["respawn0"].push_back(this->config->getVec3("respawn0", "p1"));
+  botConfig.waypoints["respawn0"].push_back(this->config->getVec3("respawn0", "p2"));
+  botConfig.waypoints["respawn1"].push_back(this->config->getVec3("respawn1", "p0"));
+  botConfig.waypoints["respawn1"].push_back(this->config->getVec3("respawn1", "p1"));
+  botConfig.waypoints["respawn1"].push_back(this->config->getVec3("respawn1", "p2"));
 
 //  goals.push_back(std::make_unique<PatrolGoal>(this));
 //  goals.push_back(std::make_unique<SeekGoal>(this));
@@ -96,30 +108,6 @@ void Bot::mainLoop() {
   }
   connection.connect(this->argv);
   getChallenge();
-  // Assuming this is a 1on1r.map so load 1on1r.bot
-  std::fstream fs;
-  std::string filename("../resources/1on1r.bot");
-
-  fs.open(filename, std::fstream::in);
-  if (fs.fail()) {
-    std::stringstream ss;
-    ss << "Failed to open " << filename;
-    throw std::runtime_error(ss.str());
-  }
-
-  while (!fs.eof()) {
-    std::stringstream ss;
-    char line[256] = { 0 };
-    fs.getline(line, 256);
-    ss << line;
-    std::string type;
-    glm::vec3 waypoint;
-    ss >> type >> waypoint.x >> waypoint.y >> waypoint.z;
-    waypoints.at(type).push_back(waypoint);
-  }
-
-  fs.close();
-
   currentTime = getTime();
   previousTime = getTime();
 
@@ -230,7 +218,11 @@ void Bot::getChallenge() {
             // Read proto version info...
             msg.readLong();
           }
-          strcpy(userInfo, "\\rate\\100000\\name\\krupt_drv\\*client\\dumbo1234\\*z_ext\\511");
+          std::stringstream ss;
+          ss << "\\rate\\100000\\name\\";
+          ss << botConfig.name;
+          ss << "\\*client\\QuakeBotClient\\*z_ext\\511";
+          strcpy(userInfo, ss.str().c_str());
           snprintf(data, sizeof(data), "\xff\xff\xff\xff" "connect %d %d %i \"%s\"\n",
           PROTOCOL_VERSION, connection.getQport(), challenge, userInfo);
           Message s;
@@ -621,9 +613,24 @@ void Bot::updateState() {
     case DisableChat:
       break;
     case Done: {
-      requestStringCommand("setinfo \"bottomcolor\" \"13\"", 2);
-      requestStringCommand("setinfo \"team\" \"blue\"", 0);
-      requestStringCommand("setinfo \"skin\" \"tf_sold\"", 2);
+      {
+        std::stringstream ss;
+        ss << "setinfo \"bottomcolor\" \"";
+        ss << botConfig.bottomColor << "\"";
+        requestStringCommand(ss.str(), 2);
+      }
+      {
+        std::stringstream ss;
+        ss << "setinfo \"team\" \""; 
+        ss << botConfig.team << "\"";
+        requestStringCommand(ss.str(), 0);
+      }
+      {
+        std::stringstream ss;
+        ss << "setinfo \"skin\" \"";
+        ss << botConfig.skin << "\"";
+        requestStringCommand(ss.str(), 2);
+      }
       delay = 20;
       connection.handshakeComplete();
       currentState = None;

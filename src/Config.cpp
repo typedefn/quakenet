@@ -47,3 +47,10 @@ std::string Config::getString(const std::string & section, const std::string & k
   return sectionKeyValues[section][key];
 }
 
+glm::vec3 Config::getVec3(const std::string & section, const std::string &key) {
+  std::stringstream ss;
+  glm::vec3 waypoint;
+  ss << this->getString(section, key);
+  ss >> waypoint.x >> waypoint.y >> waypoint.z;
+  return waypoint;
+}

@@ -31,6 +31,16 @@
 enum HandShakeState {
   None, New, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done
 };
+
+struct BotConfig {
+  int id;
+  std::string team;
+  std::string skin; // class
+  std::string name; 
+  std::string bottomColor;
+  std::map<std::string, std::vector<glm::vec3>> waypoints;
+};
+
 class Bot {
 public:
   Bot(char **argv);
@@ -98,6 +108,7 @@ private:
   int ahead;
 
   std::map<std::string, double> timers;
+  BotConfig botConfig;
 
   double currentTime;
   double previousTime;
@@ -142,6 +153,10 @@ public:
 
   BotMemory* getBotMemory() {
     return botMemory.get();
+  }
+
+  BotConfig getBotConfig() {
+    return botConfig;
   }
 
   double getTime();

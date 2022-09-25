@@ -46,7 +46,7 @@ void PlayerInfoMessage::read(Message *message) {
   pi->position = position;
 
 //  if (num == bot->getTargetId()) {
-  LOG << "[" << num << "]" << " x = " << position.x << " y = " << position.y << " z = " << position.z;
+  //LOG << "[" << num << "]" << " x = " << position.x << " y = " << position.y << " z = " << position.z;
 //  }
 
   pi->time = bot->getTime();

@@ -17,6 +17,7 @@ public:
 
   int getInt(const std::string & section, const std::string & key);
   std::string getString(const std::string & section, const std::string & key);
+  glm::vec3 getVec3(const std::string & section, const std::string &key);
 
   void load(const std::string & filename);
 
