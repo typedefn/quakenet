@@ -23,6 +23,7 @@
 #include <Goal.hpp>
 #include <SeekGoal.hpp>
 #include <MessageTypes.hpp>
+#include <Config.hpp>
 
 #define MAX_GENOMES 127
 #define MAX_TIMEOUT_IN_SECONDS 5
@@ -72,6 +73,7 @@ private:
 
   std::unique_ptr<BotMemory> botMemory;
   std::unique_ptr<TargetingSystem> targetingSystem;
+  std::unique_ptr<Config> config;
 
   std::map<std::string, std::string> mapChecksums;
   std::vector<std::unique_ptr<Goal>> goals;

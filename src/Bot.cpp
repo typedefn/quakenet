@@ -18,6 +18,8 @@ Bot::Bot(char **argv) {
   this->botMemory = std::make_unique<BotMemory>(this, 8);
   this->targetingSystem = std::make_unique<TargetingSystem>(this);
 
+  this->config = std::make_unique<Config>("../resources/settings.ini");
+
 //  goals.push_back(std::make_unique<PatrolGoal>(this));
 //  goals.push_back(std::make_unique<SeekGoal>(this));
 //  goals.push_back(std::make_unique<AttackGoal>(this));
