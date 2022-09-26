@@ -84,6 +84,7 @@ private:
   std::unique_ptr<BotMemory> botMemory;
   std::unique_ptr<TargetingSystem> targetingSystem;
   std::unique_ptr<Config> config;
+  std::unique_ptr<Config> impulseConfig;
 
   std::map<std::string, std::string> mapChecksums;
   std::vector<std::unique_ptr<Goal>> goals;

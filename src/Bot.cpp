@@ -19,6 +19,7 @@ Bot::Bot(char **argv) {
   this->targetingSystem = std::make_unique<TargetingSystem>(this);
 
   this->config = std::make_unique<Config>("../resources/settings.ini");
+  this->impulseConfig = std::make_unique<Config>("../resources/impulses.ini");
   
   std::string botSection = this->config->getString("main", "bot0");
   botConfig.name = this->config->getString(botSection, "name");
@@ -595,7 +596,8 @@ void Bot::updateState() {
       // Assuming it is fortress gamedir now.
       timers["state"] += (currentTime - previousTime);
       if (timers["state"] > 1) {
-        sendImpulse(1, 2);
+        int team = impulseConfig->getInt("main", botConfig.team);
+        sendImpulse(team, 2);
         timers["state"] = 0;
         currentState = None;
       }
@@ -604,7 +606,8 @@ void Bot::updateState() {
     case SelectClass: {
       timers["state"] += (currentTime - previousTime);
       if (timers["state"] > 1) {
-        sendImpulse(3, 2);
+        int skin = impulseConfig->getInt("main", botConfig.skin);
+        sendImpulse(skin, 2);
         timers["state"] = 0;
         currentState = None;
       }
