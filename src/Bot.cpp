@@ -33,7 +33,7 @@ Bot::Bot(char **argv) {
   botConfig.waypoints["respawn1"].push_back(this->config->getVec3("respawn1", "p1"));
   botConfig.waypoints["respawn1"].push_back(this->config->getVec3("respawn1", "p2"));
 
-//  goals.push_back(std::make_unique<PatrolGoal>(this));
+  goals.push_back(std::make_unique<PatrolGoal>(this));
 //  goals.push_back(std::make_unique<SeekGoal>(this));
 //  goals.push_back(std::make_unique<AttackGoal>(this));
 //  goals.push_back(std::make_unique<RoamGoal>(this));

@@ -22,10 +22,29 @@ void PatrolGoal::update() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
-  std::vector<glm::vec3> waypoints = owner->getWaypoints()["start"];
 
+  BotConfig botConfig = owner->getBotConfig();
+
+  std::vector<glm::vec3> waypoints;
+
+  dist = 999999;
+  float minDist = 99999;
+  
+  for(const auto & it : botConfig.waypoints) {
+      
+    glm::vec3 start =  it.second.at(0);
+
+    dist = glm::distance(start, me->position);
+
+    if (minDist > dist) {
+      minDist = dist; 
+      waypoints = it.second; 
+    }      
+  }
+  
   static int wi = 0;
   const float maxDistance = 50.0;
+
   glm::vec3 targetPosition(waypoints.at(wi).x, me->position.y, waypoints.at(wi).z);
 
   dist = glm::distance(targetPosition, me->position);
@@ -34,11 +53,14 @@ void PatrolGoal::update() {
 
   if (dist > maxDistance) {
     owner->moveForward(glm::min(248, dist+50));
-//    LOG << " distance " << dist;
   }
 
   owner->rotateY(yaw);
   owner->rotateX(0);
+
+  if ( wi < waypoints.size() - 1 && dist < maxDistance) {
+    wi++;
+  }
 }
 
 double PatrolGoal::calculateDesirability() {
