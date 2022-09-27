@@ -13,6 +13,7 @@ PatrolGoal::PatrolGoal(Bot *owner) {
   currentTime = 0;
   totalTime = 0;
   dist = 0;
+  wi = 0;
 }
 
 PatrolGoal::~PatrolGoal() {
@@ -42,12 +43,25 @@ void PatrolGoal::update() {
     }      
   }
   
-  static int wi = 0;
   const float maxDistance = 50.0;
+  glm::vec3 targetPosition = waypoints.at(0);
 
-  glm::vec3 targetPosition(waypoints.at(wi).x, me->position.y, waypoints.at(wi).z);
+  if (wi < waypoints.size()) {
+    targetPosition = glm::vec3(waypoints.at(wi).x, me->position.y, waypoints.at(wi).z);
+  }
 
   dist = glm::distance(targetPosition, me->position);
+
+  if ( wi < waypoints.size() && dist < maxDistance) {
+    wi++;
+    LOG << "wi " << wi << " sz = " << waypoints.size(); 
+  }
+
+  if (wi == waypoints.size()) {
+    finished = true;
+    wi = 0;
+  } 
+
   glm::vec3 dir = normalize(targetPosition - me->position);
   float yaw = 90 + atan2(-dir.x, dir.z) * (180.0 / PI);
 
@@ -57,10 +71,6 @@ void PatrolGoal::update() {
 
   owner->rotateY(yaw);
   owner->rotateX(0);
-
-  if ( wi < waypoints.size() - 1 && dist < maxDistance) {
-    wi++;
-  }
 }
 
 double PatrolGoal::calculateDesirability() {
@@ -69,7 +79,7 @@ double PatrolGoal::calculateDesirability() {
   double desire = 0.001;
   double tweak = 1.0;
   if (!targetingSystem->isTargetPresent()) {
-    desire = tweak * owner->getHealth()/100.0;
+    desire = tweak * owner->getHealth()/100.0f;
   }
   return desire;
 }

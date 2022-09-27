@@ -24,6 +24,7 @@ public:
   }
 private:
   int dist;
+  int wi;
 };
 
 #endif /* PATROLGOAL_HPP_ */

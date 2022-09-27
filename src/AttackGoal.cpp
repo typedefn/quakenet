@@ -12,7 +12,7 @@
 AttackGoal::AttackGoal(Bot *owner) {
   // TODO Auto-generated constructor stub
   this->owner = owner;
-  goals.push_back(std::make_unique<StrafeGoal>(owner));
+//  goals.push_back(std::make_unique<StrafeGoal>(owner));
   totalTime = 0.0;
   sign = 0;
   currentTime = 0;
@@ -76,10 +76,10 @@ double AttackGoal::calculateDesirability() {
   double desire = 0.0;
   double tweaker = 40.0;
 
-  if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov()) {
-    glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
-    float dist = glm::distance(targetPosition, me->position);
+  glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
+  float dist = glm::distance(targetPosition, me->position);
 
+  if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov() && dist < 700) {
     desire = tweaker * (owner->getHealth() / (dist + 100));
   }
 

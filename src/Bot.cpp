@@ -18,7 +18,8 @@ Bot::Bot(char **argv) {
   this->botMemory = std::make_unique<BotMemory>(this, 8);
   this->targetingSystem = std::make_unique<TargetingSystem>(this);
 
-  this->config = std::make_unique<Config>("../resources/settings.ini");
+  std::string configFilename(argv[3]);
+  this->config = std::make_unique<Config>(configFilename);
   this->impulseConfig = std::make_unique<Config>("../resources/impulses.ini");
   
   std::string botSection = this->config->getString("main", "bot0");
@@ -26,16 +27,38 @@ Bot::Bot(char **argv) {
   botConfig.skin = this->config->getString(botSection, "skin");
   botConfig.team = this->config->getString(botSection, "team");
   botConfig.bottomColor = this->config->getString(botSection, "bottomcolor");
-  botConfig.waypoints["respawn0"].push_back(this->config->getVec3("respawn0", "p0"));
-  botConfig.waypoints["respawn0"].push_back(this->config->getVec3("respawn0", "p1"));
-  botConfig.waypoints["respawn0"].push_back(this->config->getVec3("respawn0", "p2"));
-  botConfig.waypoints["respawn1"].push_back(this->config->getVec3("respawn1", "p0"));
-  botConfig.waypoints["respawn1"].push_back(this->config->getVec3("respawn1", "p1"));
-  botConfig.waypoints["respawn1"].push_back(this->config->getVec3("respawn1", "p2"));
+
+
+  // TODO: clean this mess up..
+  for(int j = 0; ; j++) {
+    std::stringstream ssj;
+    ssj << "respawn" << j;
+
+    std::stringstream ssi;
+    ssi << "spawn" << j;
+   
+    if (this->config->getString("main", ssi.str()) == "n/a") {
+      break;
+    }
+
+    for(int i = 0; ;i++) { 
+      std::stringstream ssp;
+      ssp << "p" << i;
+      glm::vec3 pt = this->config->getVec3(ssj.str(), ssp.str());
+      float dist = glm::dot(pt, glm::vec3(1, 1, 1));
+
+      if (dist < 0.001 && dist > -0.001) {
+	break;
+      }
+
+      botConfig.waypoints[ssj.str()].push_back(pt);
+    }
+  }
+
 
   goals.push_back(std::make_unique<PatrolGoal>(this));
 //  goals.push_back(std::make_unique<SeekGoal>(this));
-//  goals.push_back(std::make_unique<AttackGoal>(this));
+  goals.push_back(std::make_unique<AttackGoal>(this));
 //  goals.push_back(std::make_unique<RoamGoal>(this));
 
   for (int i = 0; i < MAX_CLIENTS; i++) {
@@ -750,6 +773,10 @@ void Bot::think() {
   if (getHealth() > 0) {
     double maxScore = -1.0;
     for (const auto &g : goals) {
+      if (g->isFinished()) {
+        continue;
+      }
+
       double desire = g->calculateDesirability();
       if (desire > maxScore) {
         maxScore = desire;
@@ -767,6 +794,11 @@ void Bot::think() {
       previousDescription = description;
     }
   } else if (getHealth() <= 0) {
+
+    for (const auto &g : goals) {
+      g->reset();
+    }
+
     targetingSystem->clearTarget();
     clickButton(1);
   }

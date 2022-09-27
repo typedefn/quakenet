@@ -44,13 +44,32 @@ int Config::getInt(const std::string & section, const std::string & key) {
 }
 
 std::string Config::getString(const std::string & section, const std::string & key) {
-  return sectionKeyValues[section][key];
+
+  if(sectionKeyValues.find(section) == sectionKeyValues.end()) {
+    return "n/a";
+  }
+
+  auto keyMap = sectionKeyValues[section];
+  
+  if (keyMap.find(key) == keyMap.end()) {
+    return "n/a";
+  }
+  
+
+  return sectionKeyValues[section][key]; 
 }
 
 glm::vec3 Config::getVec3(const std::string & section, const std::string &key) {
   std::stringstream ss;
   glm::vec3 waypoint;
-  ss << this->getString(section, key);
+
+  std::string value = this->getString(section, key);
+  LOG << " value = " << value;
+  if (value == "n/a") {
+    return glm::vec3(0, 0, 0);
+  }
+
+  ss << value;
   ss >> waypoint.x >> waypoint.y >> waypoint.z;
   return waypoint;
 }
