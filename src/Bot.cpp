@@ -57,7 +57,6 @@ Bot::Bot(char **argv) {
 
 
   goals.push_back(std::make_unique<PatrolGoal>(this));
-//  goals.push_back(std::make_unique<SeekGoal>(this));
   goals.push_back(std::make_unique<AttackGoal>(this));
 //  goals.push_back(std::make_unique<RoamGoal>(this));
 
@@ -69,7 +68,7 @@ Bot::Bot(char **argv) {
     players[i].flags = 0;
     players[i].frags = 0;
     players[i].frame = 0;
-    strcpy(players[i].name, "");
+    players[i].name, "";
     players[i].ping = 0;
     players[i].pl = 0;
     players[i].slot = -1;
@@ -807,11 +806,13 @@ void Bot::think() {
    * TODO: Need to fix a bug were the bot gets stuck
    * on first spawn.
    */
+  
   timers["prime"] += (currentTime - previousTime);
   if (timers["prime"] > 6 && primeCounter < 1) {
     primeCounter++;
     requestStringCommand("kill");
   }
+  
 
   timers["think"] += (currentTime - previousTime);
   Command *command = getCommand();

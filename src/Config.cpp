@@ -28,7 +28,6 @@ void Config::load(const std::string &filename) {
       } else if (it != line.end()) { 
         key = std::string(line.begin(), it);
         value = std::string(it + 1, line.end());
-        LOG << "[" << section << "] " << key << " = " << value;
         sectionKeyValues[section][key] = value;
       }
    }
@@ -64,7 +63,6 @@ glm::vec3 Config::getVec3(const std::string & section, const std::string &key) {
   glm::vec3 waypoint;
 
   std::string value = this->getString(section, key);
-  LOG << " value = " << value;
   if (value == "n/a") {
     return glm::vec3(0, 0, 0);
   }

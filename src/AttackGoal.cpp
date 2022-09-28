@@ -12,7 +12,8 @@
 AttackGoal::AttackGoal(Bot *owner) {
   // TODO Auto-generated constructor stub
   this->owner = owner;
-//  goals.push_back(std::make_unique<StrafeGoal>(owner));
+  goals.push_back(std::make_unique<SeekGoal>(owner));
+  goals.push_back(std::make_unique<StrafeGoal>(owner));
   totalTime = 0.0;
   sign = 0;
   currentTime = 0;
@@ -33,6 +34,13 @@ void AttackGoal::update() {
     glm::vec3 lastPosition = targetingSystem->getLastRecordedPosition();
     float targetSpeed = owner->getPlayerBySlot(slot)->speed;
 
+    PlayerInfo *target = owner->getPlayerBySlot(slot);
+
+    if (me->team == target->team) {
+      targetingSystem->clearTarget();
+      return;
+    } 
+
     glm::vec3 toEnemy = lastPosition - me->position;
     float lookAhead = glm::length(toEnemy) / (targetSpeed + 6.0);
 
@@ -52,21 +60,19 @@ void AttackGoal::update() {
     owner->clickButton(1 | ((rand() % 2) * 2));
   }
 
-  double maxDesire = -10;
+  double maxDesire = 1;
   Goal *goal = nullptr;
   for (const auto &g : goals) {
-//    double currentDesire = g->calculateDesirability();
-//    if (currentDesire > maxDesire) {
-//      maxDesire = currentDesire;
-//      goal = g.get();
-//    }
-
-    g->update();
+    double currentDesire = g->calculateDesirability();
+    if (currentDesire > maxDesire) {
+      maxDesire = currentDesire;
+      goal = g.get();
+    }
   }
-//
-//  if (goal != nullptr) {
-//    goal->update();
-//  }
+
+  if (goal != nullptr) {
+    goal->update();
+  }
 }
 
 double AttackGoal::calculateDesirability() {
@@ -79,7 +85,8 @@ double AttackGoal::calculateDesirability() {
   glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
   float dist = glm::distance(targetPosition, me->position);
 
-  if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov() && dist < 700) {
+  if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov() && dist < 500) {
+    PlayerInfo *target = owner->getPlayerBySlot(targetingSystem->getTarget());
     desire = tweaker * (owner->getHealth() / (dist + 100));
   }
 

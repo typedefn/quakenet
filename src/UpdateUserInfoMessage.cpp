@@ -27,18 +27,26 @@ void UpdateUserInfoMessage::read(Message *message) {
   long userId = message->readLong();
   std::string value(message->readString());
   std::string name = Utility::findValue("name", value);
-  // TODO: fix hardcoded name of bot later.
-  if (name == bot->getBotConfig().name) {
-    LOG << "In slot " << slot << " with id " << userId;
-    bot->setMySlot(slot);
-    // Assuming it is fortress
-  }
 
   PlayerInfo *pi = bot->getPlayerBySlot(slot);
+  // TODO: fix hardcoded name of bot later.
+  if (name == bot->getBotConfig().name) {
+//    LOG << "In slot " << slot << " with id " << userId;
+    bot->setMySlot(slot);
+    pi->team = bot->getBotConfig().team;
+    pi->name = name;
+    // Assuming it is fortress
+  } else if (pi != nullptr) {
+    pi->team = Utility::findValue("team", value);
+    pi->name = name;
+  }
+
+  LOG << slot << " name = " << name << "pi->team = " << pi->team;
+
   if (pi != nullptr && userId != 0 && !name.empty()) {
     pi->active = true;
     pi->slot = slot;
-    LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " " << value << " " << name;
+//    LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " " << value << " " << name;
   }
 
   std::string spectator = Utility::findValue("*spectator", value);
@@ -46,8 +54,6 @@ void UpdateUserInfoMessage::read(Message *message) {
   if (spectator == "1") {
     pi->active = false;
   }
-
-
 
 //  LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " " << value << " " << name;
   // updateUserInfo:  slot = 1 user id 2 \*client\ezQuake 6923\chat\1\bottomcolor\4\topcolor\4\skin\tf_sold\team\red\name\mastakillah mastakillah
