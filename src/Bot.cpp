@@ -589,7 +589,7 @@ void Bot::updateState() {
   }
 
   if (previousState != currentState) {
-    LOG << "State changed to " << currentState << " from " << previousState;
+    LOG << "State changed from " << previousState << " to " << currentState;
   }
 
   previousState = currentState;
@@ -741,15 +741,6 @@ void Bot::createCommand(Message *s) {
   }
 
   s->setCurrentSize(size);
-
-  if (connection.getOutgoingSequence() - validSequence >= UPDATE_MASK) {
-    validSequence = 0;
-  }
-
-  if (validSequence) {
-    s->writeByte(clc_delta);
-    s->writeByte(validSequence & 255);
-  }
 }
 
 void Bot::think() {

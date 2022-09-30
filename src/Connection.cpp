@@ -124,18 +124,24 @@ bool Connection::recv(Message *msg) {
 
   if (rv == 1) {
     n = recvfrom(sockfd, (char*) buffer, MAXLINE, 0, (struct sockaddr*) &servaddr, &len);
-    msg->setCurrentSize(n);
-    msg->setMaxSize(MAXLINE);
 
-    buffer[n] = '\0';
+    if (n == -1) {
+      LOG << "err " << errno;
+      return false;
+    } else if (n == 0) {
+      LOG << "remote sock closed";
+      return false;
+    }
 
     if (n >= MAXLINE) {
       LOG << "buffer is huge truncating " << n;
       n = MAXLINE - 1;
-    } else if (n < 0) {
-      LOG << "Failed to recv from socket. errno = " << errno;
-      return false;
-    }
+    } 
+
+    msg->setCurrentSize(n);
+    msg->setMaxSize(MAXLINE);
+
+    buffer[n] = '\0';
     std::stringstream ss;
     ss << "Recv: ";
 
