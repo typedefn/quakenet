@@ -28,7 +28,6 @@ Bot::Bot(char **argv) {
   botConfig.team = this->config->getString(botSection, "team");
   botConfig.bottomColor = this->config->getString(botSection, "bottomcolor");
 
-
   goals.push_back(std::make_unique<PatrolGoal>(this));
   goals.push_back(std::make_unique<AttackGoal>(this));
 //  goals.push_back(std::make_unique<RoamGoal>(this));
@@ -1019,6 +1018,7 @@ void Bot::initConfiguration() {
   botConfig.defend = this->config->getString("main", "defend");
   
   this->mapConfig = std::make_unique<Config>(configSs.str());
+  botConfig.numRespawns = this->mapConfig->getInt("main", "num_respawns");
 
   initWaypoints("respawn0");
   initWaypoints("respawn1");
