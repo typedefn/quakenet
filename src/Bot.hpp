@@ -39,6 +39,7 @@ struct BotConfig {
   std::string name; 
   std::string bottomColor;
   std::map<std::string, std::vector<glm::vec3>> waypoints;
+  std::string defend;
 };
 
 class Bot {
@@ -85,6 +86,7 @@ private:
   std::unique_ptr<TargetingSystem> targetingSystem;
   std::unique_ptr<Config> config;
   std::unique_ptr<Config> impulseConfig;
+  std::unique_ptr<Config> mapConfig;
 
   std::map<std::string, std::string> mapChecksums;
   std::vector<std::unique_ptr<Goal>> goals;
@@ -114,6 +116,10 @@ private:
   double currentTime;
   double previousTime;
   int primeCounter;
+
+  void initConfiguration();
+  void initWaypoints(const std::string & section);
+
 public:
   void nullCommand(Command *cmd);
 
@@ -159,6 +165,8 @@ public:
   BotConfig getBotConfig() {
     return botConfig;
   }
+
+  
 
   double getTime();
   void getChallenge();

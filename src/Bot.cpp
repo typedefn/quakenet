@@ -29,33 +29,6 @@ Bot::Bot(char **argv) {
   botConfig.bottomColor = this->config->getString(botSection, "bottomcolor");
 
 
-  // TODO: clean this mess up..
-  for(int j = 0; ; j++) {
-    std::stringstream ssj;
-    ssj << "respawn" << j;
-
-    std::stringstream ssi;
-    ssi << "spawn" << j;
-   
-    if (this->config->getString("main", ssi.str()) == "n/a") {
-      break;
-    }
-
-    for(int i = 0; ;i++) { 
-      std::stringstream ssp;
-      ssp << "p" << i;
-      glm::vec3 pt = this->config->getVec3(ssj.str(), ssp.str());
-      float dist = glm::dot(pt, glm::vec3(1, 1, 1));
-
-      if (dist < 0.001 && dist > -0.001) {
-	break;
-      }
-
-      botConfig.waypoints[ssj.str()].push_back(pt);
-    }
-  }
-
-
   goals.push_back(std::make_unique<PatrolGoal>(this));
   goals.push_back(std::make_unique<AttackGoal>(this));
 //  goals.push_back(std::make_unique<RoamGoal>(this));
@@ -695,6 +668,8 @@ void Bot::setInfo() {
   s.writeString(ss.str().c_str());
   s.writeByte(0);
   outputQueue.push(s);
+  
+  initConfiguration();
 }
 
 void Bot::sendImpulse(byte impulse, long delay) {
@@ -756,9 +731,9 @@ void Bot::think() {
     LOG << " me == nullptr";
     return;
   }
-//
-//  botMemory->updateVision();
-//  targetingSystem->update();
+
+  botMemory->updateVision();
+  targetingSystem->update();
 
   if (getHealth() > 0) {
     double maxScore = -1.0;
@@ -1035,4 +1010,46 @@ void Bot::nullCommand(Command *cmd) {
   cmd->msec = 2;
   cmd->sideMove = 0;
   cmd->upMove = 0;
+}
+
+void Bot::initConfiguration() {
+
+  std::stringstream configSs;
+  configSs << "../resources/" << mapName << ".ini";
+  botConfig.defend = this->config->getString("main", "defend");
+  
+  this->mapConfig = std::make_unique<Config>(configSs.str());
+
+  initWaypoints("respawn0");
+  initWaypoints("respawn1");
+  initWaypoints("position0");
+  initWaypoints("position1");
+  initWaypoints("respawn0-position0");
+  initWaypoints("respawn0-position1");
+  initWaypoints("respawn1-position0");
+  initWaypoints("respawn1-position1");
+}
+
+void Bot::initWaypoints(const std::string & section) {
+  std::stringstream ssj;
+  ssj << section;
+
+  for(int i = 0; ;i++) { 
+    std::stringstream ssp;
+    ssp << "p" << i;
+
+    if (this->mapConfig->getString(ssj.str(), ssp.str()) == "n/a") {
+      return;
+    }
+
+    glm::vec3 pt = this->mapConfig->getVec3(ssj.str(), ssp.str());
+    float dist = glm::dot(pt, glm::vec3(1, 1, 1));
+
+    if (dist < 0.001 && dist > -0.001) {
+      return;
+    }
+
+    LOG << ssj.str() << " with " << ssp.str();
+    botConfig.waypoints[ssj.str()].push_back(pt);
+  }
 }

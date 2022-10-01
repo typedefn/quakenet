@@ -26,23 +26,50 @@ void PatrolGoal::update() {
 
   BotConfig botConfig = owner->getBotConfig();
 
-  std::vector<glm::vec3> waypoints;
 
   dist = 999999;
   float minDist = 99999;
-  
-  for(const auto & it : botConfig.waypoints) {
-      
-    glm::vec3 start =  it.second.at(0);
+  if (wi == 0) {
+    std::string startPoint = "n/a"; 
+    // figure out which respawn point we are closest to.
+    int numberOfRespawnPoints = 2; // get this from file
+    std::string defendPoint = botConfig.defend;
 
-    dist = glm::distance(start, me->position);
+    for(int i = 0; i < numberOfRespawnPoints; i++) {
+      std::stringstream respawnSs;
+      respawnSs << "respawn" << i;
 
-    if (minDist > dist) {
-      minDist = dist; 
-      waypoints = it.second; 
-    }      
-  }
-  
+      if (botConfig.waypoints.find(respawnSs.str()) == botConfig.waypoints.end()) {
+	LOG << "respawn section " << respawnSs.str() << " not found in waypoints map";
+	return;
+      }
+
+      glm::vec3 respawnPoint = botConfig.waypoints[respawnSs.str()].at(0);
+      dist = glm::distance(respawnPoint, me->position);
+
+      if (minDist > dist && dist < 200) {
+	minDist = dist; 
+	startPoint = respawnSs.str();
+      }      
+    } 
+
+    if (startPoint == "n/a") {
+      LOG << "respawn not found!";
+      return;
+    }
+   
+    // Get all the waypoints from respawn point to defend point.
+    std::stringstream sectionName;
+    sectionName << startPoint << "-" << defendPoint;
+
+    if (botConfig.waypoints.find(sectionName.str()) == botConfig.waypoints.end()) {
+      LOG << "section " << sectionName.str() << " not found in waypoints map";
+      return;
+    }
+
+    waypoints = botConfig.waypoints[sectionName.str()];
+  } 
+
   const float maxDistance = 50.0;
   glm::vec3 targetPosition = waypoints.at(0);
 
@@ -60,6 +87,7 @@ void PatrolGoal::update() {
   if (wi == waypoints.size()) {
     finished = true;
     wi = 0;
+    return;
   } 
 
   glm::vec3 dir = normalize(targetPosition - me->position);

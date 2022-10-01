@@ -25,6 +25,7 @@ public:
 private:
   int dist;
   int wi;
+  std::vector<glm::vec3> waypoints;
 };
 
 #endif /* PATROLGOAL_HPP_ */
