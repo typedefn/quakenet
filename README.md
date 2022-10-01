@@ -3,14 +3,13 @@ QuakeWorld Bot Client
 
 This is a quake bot that connects via UDP to a TF QW server, still under development and needs lots of work.
 
-Only has waypoints setup for 2fort5r.bsp in the ./resources/2fort5r.ini file.
+Only has waypoints setup for 2fort5r.bsp and 1on1r.bsp in the ./resources/ .ini files.
 There are some bot profiles, like what position the bot should play defense vs offense.
 
 # Areas that need work
 
 - Needs better AI system.
 - Currently only compiles in Linux, maybe make a Windoze port of it.
-- Currently only have 2 defense points setup in the 2fort5r map, more way points can be added.
 
 # How to compile on Linux
 
