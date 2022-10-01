@@ -24,7 +24,7 @@ There are some bot profiles, like what position the bot should play defense vs o
 
 ./quakenet IP port <file.ini>
 
-For example, to connect to a server hosted on 127.0.0.1 on port 27500 you will execute:
+For example, to connect to a server hosted on 127.0.0.1 on port 27500 with the dervish.ini bot profile you will execute:
 
-./quakenet 127.0.0.1 27500 botconfig.ini
+./quakenet 127.0.0.1 27500 dervish.ini
   
