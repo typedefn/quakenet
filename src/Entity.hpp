@@ -11,7 +11,7 @@
 #include "Common.hpp"
 
 struct PlayerInfo {
-  char name[32];
+  std::string name;
   int frags;
   int ping;
   byte pl;
@@ -27,6 +27,7 @@ struct PlayerInfo {
   float speed;
   glm::vec3 direction;
   float angles[3];
+  std::string team;
 };
 
 #endif /* ENTITY_HPP_ */

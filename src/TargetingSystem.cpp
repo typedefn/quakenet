@@ -37,7 +37,7 @@ void TargetingSystem::update() {
 
 		float dist = glm::distance(owner->getBotMemory()->getLastSensedPosition(id), m->position);
 
-		if (dist < closestDistanceSoFar && dist <= 700) {
+		if (dist < closestDistanceSoFar && dist <= 340) {
 			closestDistanceSoFar = dist;
 			currentTarget = id;
 		}

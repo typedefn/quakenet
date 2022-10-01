@@ -4,9 +4,9 @@ using namespace std;
 
 int main(int argc, char **argv) {
 
-  if (argc != 3) {
+  if (argc != 4) {
     LOG << "To connect to a QW server type:";
-    LOG << "./quakenet ip port";
+    LOG << "./quakenet <ip> <port> <bot.ini file>";
     return 0;
   }
 

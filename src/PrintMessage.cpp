@@ -28,9 +28,9 @@ void PrintMessage::read(Message *message) {
 //  lines.push_back(line1);
 //  LOG << "Level " << level << " LINE " << line;
 
-  if (lastLine.find("krupt_drv") != std::string::npos && line.find("has joined Team No") != std::string::npos) {
+  if (lastLine.find(bot->getBotConfig().name) != std::string::npos && line.find("has joined Team No") != std::string::npos) {
     bot->setState(SelectClass);
-  } else if (lastLine.find("krupt_drv") != std::string::npos && line.find("joined!") != std::string::npos) {
+  } else if (lastLine.find(bot->getBotConfig().name) != std::string::npos && line.find("joined!") != std::string::npos) {
     bot->setState(JoinTeam);
   }
 

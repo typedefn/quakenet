@@ -1,14 +1,16 @@
 # quakenet
 QuakeWorld Bot Client
 
-This is a quake bot that connects via UDP to a QW or a TF QW server, still under development and needs lots of work.
+This is a quake bot that connects via UDP to a TF QW server, still under development and needs lots of work.
+
+Only has waypoints setup for 2fort5r.bsp in the ./resources/2fort5r.ini file.
+There are some bot profiles, like what position the bot should play defense vs offense.
 
 # Areas that need work
 
-- Probably need to implement configuration parser, so that the bot config is not hardcoded, such as bot name, team selection, class selection, etc...
 - Needs better AI system.
 - Currently only compiles in Linux, maybe make a Windoze port of it.
-
+- Currently only have 2 defense points setup in the 2fort5r map, more way points can be added.
 
 # How to compile on Linux
 
@@ -20,9 +22,9 @@ This is a quake bot that connects via UDP to a QW or a TF QW server, still under
 
 # How to run
 
-./quakenet IP port
+./quakenet IP port <file.ini>
 
-For example, to connect to a server hosted on 127.0.0.1 on port 27500 you will execute:
+For example, to connect to a server hosted on 127.0.0.1 on port 27500 with the dervish.ini bot profile you will execute:
 
-./quakenet 127.0.0.1 27500
+./quakenet 127.0.0.1 27500 dervish.ini
   

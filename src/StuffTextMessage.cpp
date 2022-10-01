@@ -58,7 +58,7 @@ void StuffTextMessage::read(Message *message) {
       bot->setState(Begin);
     } else if (token == "team" && tokens.at(1) == "blue") {
 //      bot->requestStringCommand("setinfo \"team\" \"blue\"", 2);
-    } else if (token == "skin" && tokens.at(1) == "tf_sold") {
+    } else if (token == "skin" && tokens.at(1) == bot->getBotConfig().skin) {
       bot->setState(Done);
     }
 

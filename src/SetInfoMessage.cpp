@@ -30,11 +30,12 @@ void SetInfoMessage::read(Message *message) {
 
 //  LOG << "setInfo: " << key << " " << value;
   // TODO: Fix all this hardcoded gibberish later...
-  if (key == "team" && value == "blue") {
-//    bot->setState(SelectClass);
-    LOG << "JOINED BLUE TEAM";
+  if (key == "team") {
+      PlayerInfo * pi = bot->getPlayerBySlot(slot);
+      pi->team = value;
+      LOG << pi->name << " join team " << pi->team; 
   } else if (key == "skin" && value == "tf_sold") {
 //    bot->setState(Done);
-    LOG << "SELECTED CLASS 'SOLDIER'!";
+//    LOG << "SELECTED CLASS 'SOLDIER'!";
   }
 }

@@ -18,9 +18,19 @@ Bot::Bot(char **argv) {
   this->botMemory = std::make_unique<BotMemory>(this, 8);
   this->targetingSystem = std::make_unique<TargetingSystem>(this);
 
-//  goals.push_back(std::make_unique<PatrolGoal>(this));
-//  goals.push_back(std::make_unique<SeekGoal>(this));
-//  goals.push_back(std::make_unique<AttackGoal>(this));
+  std::string configFilename(argv[3]);
+  this->config = std::make_unique<Config>(configFilename);
+  this->impulseConfig = std::make_unique<Config>("../resources/impulses.ini");
+  
+  std::string botSection = this->config->getString("main", "bot0");
+  botConfig.name = this->config->getString(botSection, "name");
+  botConfig.skin = this->config->getString(botSection, "skin");
+  botConfig.team = this->config->getString(botSection, "team");
+  botConfig.bottomColor = this->config->getString(botSection, "bottomcolor");
+
+
+  goals.push_back(std::make_unique<PatrolGoal>(this));
+  goals.push_back(std::make_unique<AttackGoal>(this));
 //  goals.push_back(std::make_unique<RoamGoal>(this));
 
   for (int i = 0; i < MAX_CLIENTS; i++) {
@@ -31,7 +41,7 @@ Bot::Bot(char **argv) {
     players[i].flags = 0;
     players[i].frags = 0;
     players[i].frame = 0;
-    strcpy(players[i].name, "");
+    players[i].name, "";
     players[i].ping = 0;
     players[i].pl = 0;
     players[i].slot = -1;
@@ -94,30 +104,6 @@ void Bot::mainLoop() {
   }
   connection.connect(this->argv);
   getChallenge();
-  // Assuming this is a 1on1r.map so load 1on1r.bot
-  std::fstream fs;
-  std::string filename("../resources/1on1r.bot");
-
-  fs.open(filename, std::fstream::in);
-  if (fs.fail()) {
-    std::stringstream ss;
-    ss << "Failed to open " << filename;
-    throw std::runtime_error(ss.str());
-  }
-
-  while (!fs.eof()) {
-    std::stringstream ss;
-    char line[256] = { 0 };
-    fs.getline(line, 256);
-    ss << line;
-    std::string type;
-    glm::vec3 waypoint;
-    ss >> type >> waypoint.x >> waypoint.y >> waypoint.z;
-    waypoints.at(type).push_back(waypoint);
-  }
-
-  fs.close();
-
   currentTime = getTime();
   previousTime = getTime();
 
@@ -228,7 +214,11 @@ void Bot::getChallenge() {
             // Read proto version info...
             msg.readLong();
           }
-          strcpy(userInfo, "\\rate\\100000\\name\\krupt_drv\\*client\\dumbo1234\\*z_ext\\511");
+          std::stringstream ss;
+          ss << "\\rate\\100000\\name\\";
+          ss << botConfig.name;
+          ss << "\\*client\\QuakeBotClient\\*z_ext\\511";
+          strcpy(userInfo, ss.str().c_str());
           snprintf(data, sizeof(data), "\xff\xff\xff\xff" "connect %d %d %i \"%s\"\n",
           PROTOCOL_VERSION, connection.getQport(), challenge, userInfo);
           Message s;
@@ -572,7 +562,7 @@ void Bot::updateState() {
   }
 
   if (previousState != currentState) {
-    LOG << "State changed to " << currentState << " from " << previousState;
+    LOG << "State changed from " << previousState << " to " << currentState;
   }
 
   previousState = currentState;
@@ -601,7 +591,8 @@ void Bot::updateState() {
       // Assuming it is fortress gamedir now.
       timers["state"] += (currentTime - previousTime);
       if (timers["state"] > 1) {
-        sendImpulse(1, 2);
+        int team = impulseConfig->getInt("main", botConfig.team);
+        sendImpulse(team, 2);
         timers["state"] = 0;
         currentState = None;
       }
@@ -610,7 +601,8 @@ void Bot::updateState() {
     case SelectClass: {
       timers["state"] += (currentTime - previousTime);
       if (timers["state"] > 1) {
-        sendImpulse(3, 2);
+        int skin = impulseConfig->getInt("main", botConfig.skin);
+        sendImpulse(skin, 2);
         timers["state"] = 0;
         currentState = None;
       }
@@ -619,9 +611,24 @@ void Bot::updateState() {
     case DisableChat:
       break;
     case Done: {
-      requestStringCommand("setinfo \"bottomcolor\" \"13\"", 2);
-      requestStringCommand("setinfo \"team\" \"blue\"", 0);
-      requestStringCommand("setinfo \"skin\" \"tf_sold\"", 2);
+      {
+        std::stringstream ss;
+        ss << "setinfo \"bottomcolor\" \"";
+        ss << botConfig.bottomColor << "\"";
+        requestStringCommand(ss.str(), 2);
+      }
+      {
+        std::stringstream ss;
+        ss << "setinfo \"team\" \""; 
+        ss << botConfig.team << "\"";
+        requestStringCommand(ss.str(), 0);
+      }
+      {
+        std::stringstream ss;
+        ss << "setinfo \"skin\" \"";
+        ss << botConfig.skin << "\"";
+        requestStringCommand(ss.str(), 2);
+      }
       delay = 20;
       connection.handshakeComplete();
       currentState = None;
@@ -661,6 +668,8 @@ void Bot::setInfo() {
   s.writeString(ss.str().c_str());
   s.writeByte(0);
   outputQueue.push(s);
+  
+  initConfiguration();
 }
 
 void Bot::sendImpulse(byte impulse, long delay) {
@@ -707,15 +716,6 @@ void Bot::createCommand(Message *s) {
   }
 
   s->setCurrentSize(size);
-
-  if (connection.getOutgoingSequence() - validSequence >= UPDATE_MASK) {
-    validSequence = 0;
-  }
-
-  if (validSequence) {
-    s->writeByte(clc_delta);
-    s->writeByte(validSequence & 255);
-  }
 }
 
 void Bot::think() {
@@ -731,13 +731,17 @@ void Bot::think() {
     LOG << " me == nullptr";
     return;
   }
-//
-//  botMemory->updateVision();
-//  targetingSystem->update();
+
+  botMemory->updateVision();
+  targetingSystem->update();
 
   if (getHealth() > 0) {
     double maxScore = -1.0;
     for (const auto &g : goals) {
+      if (g->isFinished()) {
+        continue;
+      }
+
       double desire = g->calculateDesirability();
       if (desire > maxScore) {
         maxScore = desire;
@@ -755,6 +759,11 @@ void Bot::think() {
       previousDescription = description;
     }
   } else if (getHealth() <= 0) {
+
+    for (const auto &g : goals) {
+      g->reset();
+    }
+
     targetingSystem->clearTarget();
     clickButton(1);
   }
@@ -763,11 +772,13 @@ void Bot::think() {
    * TODO: Need to fix a bug were the bot gets stuck
    * on first spawn.
    */
+  
   timers["prime"] += (currentTime - previousTime);
   if (timers["prime"] > 6 && primeCounter < 1) {
     primeCounter++;
     requestStringCommand("kill");
   }
+  
 
   timers["think"] += (currentTime - previousTime);
   Command *command = getCommand();
@@ -999,4 +1010,46 @@ void Bot::nullCommand(Command *cmd) {
   cmd->msec = 2;
   cmd->sideMove = 0;
   cmd->upMove = 0;
+}
+
+void Bot::initConfiguration() {
+
+  std::stringstream configSs;
+  configSs << "../resources/" << mapName << ".ini";
+  botConfig.defend = this->config->getString("main", "defend");
+  
+  this->mapConfig = std::make_unique<Config>(configSs.str());
+
+  initWaypoints("respawn0");
+  initWaypoints("respawn1");
+  initWaypoints("position0");
+  initWaypoints("position1");
+  initWaypoints("respawn0-position0");
+  initWaypoints("respawn0-position1");
+  initWaypoints("respawn1-position0");
+  initWaypoints("respawn1-position1");
+}
+
+void Bot::initWaypoints(const std::string & section) {
+  std::stringstream ssj;
+  ssj << section;
+
+  for(int i = 0; ;i++) { 
+    std::stringstream ssp;
+    ssp << "p" << i;
+
+    if (this->mapConfig->getString(ssj.str(), ssp.str()) == "n/a") {
+      return;
+    }
+
+    glm::vec3 pt = this->mapConfig->getVec3(ssj.str(), ssp.str());
+    float dist = glm::dot(pt, glm::vec3(1, 1, 1));
+
+    if (dist < 0.001 && dist > -0.001) {
+      return;
+    }
+
+    LOG << ssj.str() << " with " << ssp.str();
+    botConfig.waypoints[ssj.str()].push_back(pt);
+  }
 }

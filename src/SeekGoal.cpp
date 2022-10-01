@@ -23,7 +23,7 @@ void SeekGoal::update() {
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
 
-  const int maxDistance = 400.0;
+  const int maxDistance = 200.0;
   glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
 
   int dist = glm::distance(targetPosition, me->position);
@@ -49,7 +49,7 @@ double SeekGoal::calculateDesirability() {
     int id = targetingSystem->getTarget();
     glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
     float dist = glm::distance(me->position, targetPosition);
-    desire = (tweak*owner->getHealth())/(owner->getHealth()+dist-400);
+    desire = (tweak*owner->getHealth())/dist+1;
   }
 
   return desire;

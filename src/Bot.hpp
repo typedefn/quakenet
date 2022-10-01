@@ -23,6 +23,7 @@
 #include <Goal.hpp>
 #include <SeekGoal.hpp>
 #include <MessageTypes.hpp>
+#include <Config.hpp>
 
 #define MAX_GENOMES 127
 #define MAX_TIMEOUT_IN_SECONDS 5
@@ -30,6 +31,17 @@
 enum HandShakeState {
   None, New, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done
 };
+
+struct BotConfig {
+  int id;
+  std::string team;
+  std::string skin; // class
+  std::string name; 
+  std::string bottomColor;
+  std::map<std::string, std::vector<glm::vec3>> waypoints;
+  std::string defend;
+};
+
 class Bot {
 public:
   Bot(char **argv);
@@ -72,6 +84,9 @@ private:
 
   std::unique_ptr<BotMemory> botMemory;
   std::unique_ptr<TargetingSystem> targetingSystem;
+  std::unique_ptr<Config> config;
+  std::unique_ptr<Config> impulseConfig;
+  std::unique_ptr<Config> mapConfig;
 
   std::map<std::string, std::string> mapChecksums;
   std::vector<std::unique_ptr<Goal>> goals;
@@ -96,10 +111,15 @@ private:
   int ahead;
 
   std::map<std::string, double> timers;
+  BotConfig botConfig;
 
   double currentTime;
   double previousTime;
   int primeCounter;
+
+  void initConfiguration();
+  void initWaypoints(const std::string & section);
+
 public:
   void nullCommand(Command *cmd);
 
@@ -141,6 +161,12 @@ public:
   BotMemory* getBotMemory() {
     return botMemory.get();
   }
+
+  BotConfig getBotConfig() {
+    return botConfig;
+  }
+
+  
 
   double getTime();
   void getChallenge();
