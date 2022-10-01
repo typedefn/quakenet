@@ -101,8 +101,7 @@ int Connection::sendInner(Message *msg) {
   LOG << ss.str();
 #endif
 
-  return sendto(sockfd, (const char*) &msg->data[0], msg->data.size(),
-  MSG_CONFIRM, (const struct sockaddr*) &servaddr, sizeof(servaddr));
+  return sendto(sockfd, (const char*) &msg->data[0], msg->data.size(), 0, (const struct sockaddr*) &servaddr, sizeof(struct sockaddr_in));
 }
 
 bool Connection::recv(Message *msg) {
@@ -111,7 +110,7 @@ bool Connection::recv(Message *msg) {
   int n = 0;
   int rv = 0;
   tv.tv_sec = 0;
-  tv.tv_usec = 0;
+  tv.tv_usec = 1000;
   FD_ZERO(&readfds);
   FD_SET(sockfd, &readfds);
 
@@ -125,8 +124,8 @@ bool Connection::recv(Message *msg) {
   if (rv == 1) {
     n = recvfrom(sockfd, (char*) buffer, MAXLINE, 0, (struct sockaddr*) &servaddr, &len);
 
-    if (n == -1) {
-      LOG << "err " << errno;
+    if (n == EWOULDBLOCK) {
+      // common error ignore
       return false;
     } else if (n == 0) {
       LOG << "remote sock closed";

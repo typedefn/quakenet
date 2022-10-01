@@ -19,7 +19,7 @@ public:
   virtual std::string description() const = 0;
   virtual void reset() { finished = false; }
 
-  bool isFinished() { return finished; }
+  virtual bool isFinished() { return finished; }
 protected:
   Bot *owner;
   double totalTime;

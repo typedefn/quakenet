@@ -10,7 +10,7 @@
 Bot::Bot(char **argv) {
   ahead = 1;
   protoVer = 0;
-  delay = 10000;
+  delay = 0;
   challenge = 0;
   frame = 0;
   mySlot = -1;
@@ -27,7 +27,6 @@ Bot::Bot(char **argv) {
   botConfig.skin = this->config->getString(botSection, "skin");
   botConfig.team = this->config->getString(botSection, "team");
   botConfig.bottomColor = this->config->getString(botSection, "bottomcolor");
-
 
   goals.push_back(std::make_unique<PatrolGoal>(this));
   goals.push_back(std::make_unique<AttackGoal>(this));
@@ -102,6 +101,7 @@ void Bot::mainLoop() {
   for (int i = 0; i < UPDATE_BACKUP; i++) {
     nullCommand(&cmds[i]);
   }
+
   connection.connect(this->argv);
   getChallenge();
   currentTime = getTime();
@@ -109,6 +109,7 @@ void Bot::mainLoop() {
 
   bool received = false;
   running = true;
+  bool connectionLess = true;
 
   while (running) {
     int s = 0;
@@ -116,6 +117,7 @@ void Bot::mainLoop() {
     currentTime = getTime();
 
     Message inMessage;
+
 
     if (connection.recv(&inMessage)) {
       if (connection.process(&inMessage)) {
@@ -125,24 +127,26 @@ void Bot::mainLoop() {
 
     frame = (connection.getOutgoingSequence() & UPDATE_MASK);
 
-    updateState();
-
-    if (connection.hasJoinedGame()) {
-      think();
-    }
-
     if (!outputQueue.empty()) {
       Message outMessage = outputQueue.front();
       if (outMessage.isConnectionless()) {
         s = connection.sendConnectionless(outMessage);
       } else {
+        connectionLess = false;
         s = connection.send(outMessage);
       }
       outputQueue.pop();
+    } else if (!connectionLess) {
+      Message msg;
+      createCommand(&msg);
+      outputQueue.push(msg);
     }
 
-    // Prevent CPU hogging.
-    usleep(delay);
+    updateState();
+
+    if (connection.hasJoinedGame()) {
+      think();
+    }
   }
 
   requestStringCommand("drop");
@@ -215,9 +219,9 @@ void Bot::getChallenge() {
             msg.readLong();
           }
           std::stringstream ss;
-          ss << "\\rate\\100000\\name\\";
+          ss << "\\rate\\25000\\name\\";
           ss << botConfig.name;
-          ss << "\\*client\\QuakeBotClient\\*z_ext\\511";
+          ss << "\\chat\\2\\msg\\1\\noaim\\1\\*client\\QuakeBotClient\\spectator\\0\\pmodel\\13845\\emodel\\6967\\*z_ext\\511";
           strcpy(userInfo, ss.str().c_str());
           snprintf(data, sizeof(data), "\xff\xff\xff\xff" "connect %d %d %i \"%s\"\n",
           PROTOCOL_VERSION, connection.getQport(), challenge, userInfo);
@@ -583,34 +587,48 @@ void Bot::updateState() {
       std::stringstream ss;
       ss << "begin " << spawnCount;
       requestStringCommand(ss.str().c_str());
-      requestStringCommand("setinfo \"chat\" \"\"", 2);
       currentState = None;
       break;
     }
     case JoinTeam: {
       // Assuming it is fortress gamedir now.
-      timers["state"] += (currentTime - previousTime);
-      if (timers["state"] > 1) {
-        int team = impulseConfig->getInt("main", botConfig.team);
-        sendImpulse(team, 2);
-        timers["state"] = 0;
-        currentState = None;
+      int team = impulseConfig->getInt("main", botConfig.team);
+      sendImpulse(team, 2);
+
+      {
+        std::stringstream ss;
+        ss << "setinfo \"bottomcolor\" \"";
+        ss << botConfig.bottomColor << "\"";
+        requestStringCommand(ss.str(), 2);
       }
+      {
+        std::stringstream ss;
+        ss << "setinfo \"team\" \""; 
+        ss << botConfig.team << "\"";
+        requestStringCommand(ss.str(), 0);
+      }
+
+      currentState = None;
       break;
     }
     case SelectClass: {
-      timers["state"] += (currentTime - previousTime);
-      if (timers["state"] > 1) {
-        int skin = impulseConfig->getInt("main", botConfig.skin);
-        sendImpulse(skin, 2);
-        timers["state"] = 0;
-        currentState = None;
+      int skin = impulseConfig->getInt("main", botConfig.skin);
+      sendImpulse(skin, 2);
+
+      {
+        std::stringstream ss;
+        ss << "setinfo \"skin\" \"";
+        ss << botConfig.skin << "\"";
+        requestStringCommand(ss.str(), 2);
       }
+
+      currentState = None;
       break;
     }
     case DisableChat:
       break;
     case Done: {
+/*
       {
         std::stringstream ss;
         ss << "setinfo \"bottomcolor\" \"";
@@ -629,12 +647,15 @@ void Bot::updateState() {
         ss << botConfig.skin << "\"";
         requestStringCommand(ss.str(), 2);
       }
-      delay = 20;
+*/
+      requestStringCommand("say yo check ma style!");
+      requestStringCommand("setinfo \"chat\" \"\"");
       connection.handshakeComplete();
       currentState = None;
       for (int i = 0; i < UPDATE_BACKUP; i++) {
         nullCommand(&cmds[i]);
       }
+
       break;
     }
     default:
@@ -674,9 +695,6 @@ void Bot::setInfo() {
 
 void Bot::sendImpulse(byte impulse, long delay) {
   this->impulse(impulse);
-  Message s;
-  createCommand(&s);
-  outputQueue.push(s);
 }
 
 void Bot::createCommand(Message *s) {
@@ -720,11 +738,6 @@ void Bot::createCommand(Message *s) {
 
 void Bot::think() {
   static std::string previousDescription;
-
-  for (int i = 0; i < UPDATE_BACKUP; i++) {
-    nullCommand(&cmds[i]);
-  }
-
   PlayerInfo *me = getPlayerBySlot(mySlot);
 
   if (me == nullptr) {
@@ -759,34 +772,19 @@ void Bot::think() {
       previousDescription = description;
     }
   } else if (getHealth() <= 0) {
-
     for (const auto &g : goals) {
       g->reset();
     }
 
     targetingSystem->clearTarget();
-    clickButton(1);
-  }
 
-  /**
-   * TODO: Need to fix a bug were the bot gets stuck
-   * on first spawn.
-   */
-  
-  timers["prime"] += (currentTime - previousTime);
-  if (timers["prime"] > 6 && primeCounter < 1) {
-    primeCounter++;
-    requestStringCommand("kill");
-  }
-  
-
-  timers["think"] += (currentTime - previousTime);
-  Command *command = getCommand();
-  if (timers["think"] >= command->msec/1000.0f) {
-    Message s;
-    createCommand(&s);
-    outputQueue.push(s);
-    timers["think"] = 0;
+    timers["button"] += (currentTime - previousTime);
+    if (timers["button"] > 1) {
+      clickButton(0);
+      timers["button"] = 0;
+    } else if (timers["button"] > 0.2) {
+      clickButton(1);
+    }
   }
 }
 
@@ -965,13 +963,8 @@ void Bot::moveSide(short speed) {
 }
 
 void Bot::clickButton(int button) {
-  timers["button"] += (currentTime - previousTime);
-  if (timers["button"] > 1) {
-    cmds[frame].buttons = 0;
-    timers["button"] = 0;
-  } else if (timers["button"] > 0.2) {
-    cmds[frame].buttons = button;
-  }
+   cmds[frame].buttons = button;
+ // }
 }
 
 void Bot::rotateY(int angle) {
@@ -995,9 +988,7 @@ int Bot::getAngleY() {
 }
 
 void Bot::impulse(int impulse) {
-  for (int i = frame; i < frame + ahead; i++) {
-    cmds[i & UPDATE_MASK].impulse = impulse;
-  }
+  cmds[frame].impulse = impulse;
 }
 
 void Bot::nullCommand(Command *cmd) {
@@ -1012,6 +1003,22 @@ void Bot::nullCommand(Command *cmd) {
   cmd->upMove = 0;
 }
 
+void Bot::nullButton(Command *cmd) {
+  cmd->buttons = 0;
+}
+
+void Bot::nullButtons() {
+  for (int i = 0; i < UPDATE_BACKUP; i++) {
+    nullButton(&cmds[i]);
+  }
+}
+
+void Bot::nullCommands() {
+  for (int i = 0; i < UPDATE_BACKUP; i++) {
+    nullCommand(&cmds[i]);
+  }
+}
+
 void Bot::initConfiguration() {
 
   std::stringstream configSs;
@@ -1019,6 +1026,7 @@ void Bot::initConfiguration() {
   botConfig.defend = this->config->getString("main", "defend");
   
   this->mapConfig = std::make_unique<Config>(configSs.str());
+  botConfig.numRespawns = this->mapConfig->getInt("main", "num_respawns");
 
   initWaypoints("respawn0");
   initWaypoints("respawn1");

@@ -12,8 +12,8 @@
 AttackGoal::AttackGoal(Bot *owner) {
   // TODO Auto-generated constructor stub
   this->owner = owner;
-  goals.push_back(std::make_unique<SeekGoal>(owner));
-  goals.push_back(std::make_unique<StrafeGoal>(owner));
+//  goals.push_back(std::make_unique<SeekGoal>(owner));
+//  goals.push_back(std::make_unique<StrafeGoal>(owner));
   totalTime = 0.0;
   sign = 0;
   currentTime = 0;
@@ -58,6 +58,9 @@ void AttackGoal::update() {
     owner->rotateY(yawAngle);
     owner->rotateX(-pitchAngle);
     owner->clickButton(1 | ((rand() % 2) * 2));
+  } else {
+    owner->nullButtons();
+    owner->moveForward(0);
   }
 
   double maxDesire = 1;
@@ -92,3 +95,5 @@ double AttackGoal::calculateDesirability() {
 
   return desire;
 }
+
+

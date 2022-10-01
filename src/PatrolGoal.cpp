@@ -26,13 +26,16 @@ void PatrolGoal::update() {
 
   BotConfig botConfig = owner->getBotConfig();
 
+  if (!targetingSystem->isTargetPresent()) {
+    owner->nullButtons();
+  }
 
   dist = 999999;
   float minDist = 99999;
   if (wi == 0) {
     std::string startPoint = "n/a"; 
     // figure out which respawn point we are closest to.
-    int numberOfRespawnPoints = 2; // get this from file
+    int numberOfRespawnPoints = botConfig.numRespawns;
     std::string defendPoint = botConfig.defend;
 
     for(int i = 0; i < numberOfRespawnPoints; i++) {
@@ -95,11 +98,22 @@ void PatrolGoal::update() {
 
   if (dist > maxDistance) {
     owner->moveForward(glm::min(248, dist+50));
+  } else {
+    owner->moveForward(0);
   }
 
   owner->rotateY(yaw);
   owner->rotateX(0);
 }
+/*
+bool PatrolGoal::isFinished() {
+  if (finished) {
+    owner->moveForward(0);
+  }
+
+  return finished;
+}
+*/
 
 double PatrolGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
@@ -110,4 +124,9 @@ double PatrolGoal::calculateDesirability() {
     desire = tweak * owner->getHealth()/100.0f;
   }
   return desire;
+}
+
+void PatrolGoal::reset() {
+  finished = false;
+  wi = 0;
 }
