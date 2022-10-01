@@ -39,6 +39,16 @@ void Config::load(const std::string &filename) {
 }
 
 int Config::getInt(const std::string & section, const std::string & key) {
+  if(sectionKeyValues.find(section) == sectionKeyValues.end()) {
+    return 0;
+  }
+
+  auto keyMap = sectionKeyValues[section];
+  
+  if (keyMap.find(key) == keyMap.end()) {
+    return 0;
+  }
+ 
   return std::stoi(sectionKeyValues[section][key]);
 }
 

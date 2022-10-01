@@ -27,6 +27,9 @@ Bot::Bot(char **argv) {
   botConfig.skin = this->config->getString(botSection, "skin");
   botConfig.team = this->config->getString(botSection, "team");
   botConfig.bottomColor = this->config->getString(botSection, "bottomcolor");
+  botConfig.targetDistance = this->config->getInt(botSection, "target_distance");
+  botConfig.fov = this->config->getInt(botSection, "fov");
+  botConfig.seekDistance = this->config->getInt(botSection, "seek_distance");
 
   goals.push_back(std::make_unique<PatrolGoal>(this));
   goals.push_back(std::make_unique<AttackGoal>(this));

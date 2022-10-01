@@ -30,6 +30,7 @@ void PatrolGoal::update() {
     owner->nullButtons();
   }
 
+  const float maxDistance = 50.0;
   dist = 999999;
   float minDist = 99999;
   if (wi == 0) {
@@ -50,7 +51,7 @@ void PatrolGoal::update() {
       glm::vec3 respawnPoint = botConfig.waypoints[respawnSs.str()].at(0);
       dist = glm::distance(respawnPoint, me->position);
 
-      if (minDist > dist && dist < 200) {
+      if (minDist > dist && dist < maxDistance) {
 	minDist = dist; 
 	startPoint = respawnSs.str();
       }      
@@ -73,7 +74,6 @@ void PatrolGoal::update() {
     waypoints = botConfig.waypoints[sectionName.str()];
   } 
 
-  const float maxDistance = 50.0;
   glm::vec3 targetPosition = waypoints.at(0);
 
   if (wi < waypoints.size()) {
@@ -105,15 +105,6 @@ void PatrolGoal::update() {
   owner->rotateY(yaw);
   owner->rotateX(0);
 }
-/*
-bool PatrolGoal::isFinished() {
-  if (finished) {
-    owner->moveForward(0);
-  }
-
-  return finished;
-}
-*/
 
 double PatrolGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();

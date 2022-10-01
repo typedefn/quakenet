@@ -41,6 +41,9 @@ struct BotConfig {
   std::map<std::string, std::vector<glm::vec3>> waypoints;
   std::string defend;
   int numRespawns;
+  int targetDistance;
+  int fov;
+  int seekDistance;
 };
 
 class Bot {
