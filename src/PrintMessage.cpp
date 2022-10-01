@@ -29,7 +29,7 @@ void PrintMessage::read(Message *message) {
 //  LOG << "Level " << level << " LINE " << line;
 
   if (lastLine.find(bot->getBotConfig().name) != std::string::npos && line.find("has joined Team No") != std::string::npos) {
-    bot->setState(SelectClass);
+    //bot->setState(SelectClass);
   } else if (lastLine.find(bot->getBotConfig().name) != std::string::npos && line.find("joined!") != std::string::npos) {
     bot->setState(JoinTeam);
   }

@@ -22,6 +22,8 @@ public:
   std::string description() const {
     return "Patrolling";
   }
+//  bool isFinished() override;
+  void reset() override;
 private:
   int dist;
   int wi;

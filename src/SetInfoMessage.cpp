@@ -28,14 +28,15 @@ void SetInfoMessage::read(Message *message) {
   std::string key(message->readString());
   std::string value(message->readString());
 
-//  LOG << "setInfo: " << key << " " << value;
-  // TODO: Fix all this hardcoded gibberish later...
-  if (key == "team") {
-      PlayerInfo * pi = bot->getPlayerBySlot(slot);
+  PlayerInfo * pi = bot->getPlayerBySlot(slot);
+  BotConfig botConfig = bot->getBotConfig();
+
+  if (key == "team" && pi->name == botConfig.name) {
       pi->team = value;
       LOG << pi->name << " join team " << pi->team; 
-  } else if (key == "skin" && value == "tf_sold") {
-//    bot->setState(Done);
-//    LOG << "SELECTED CLASS 'SOLDIER'!";
+      bot->setState(SelectClass);
+  } else if (key == "skin" && value == botConfig.skin) {
+     //bot->setState(Done);
+     LOG << "SELECTED CLASS " << botConfig.skin; 
   }
 }

@@ -123,6 +123,9 @@ private:
 
 public:
   void nullCommand(Command *cmd);
+  void nullButton(Command *cmd);
+  void nullCommands();
+  void nullButtons();
 
   std::string getMapCheckSum(std::string key) {
     return mapChecksums[key];
@@ -135,16 +138,12 @@ public:
       return 0;
     }
 
-    statLock.lock();
     value = stats[stat];
-    statLock.unlock();
     return value;
   }
 
   void setStat(int stat, int value) {
-    statLock.lock();
     stats[stat] = value;
-    statLock.unlock();
   }
 
   int getHealth() {
