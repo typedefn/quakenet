@@ -84,7 +84,6 @@ bool TargetingSystem::targetIsVisible(int id) {
     return false;
   }
 
-  // hit box is 32x64 units for player
   PlayerInfo *target = owner->getPlayerBySlot(id);
   PlayerInfo *me = owner->getMe();
 
@@ -104,10 +103,7 @@ bool TargetingSystem::targetIsVisible(int id) {
 
   float t2 = 0.0;
   bool targetIntersected = targetBox.intersectV2(ray, &t2);
-  bool visible = false;
-
   float offset = 99999;
-
   float smallestT1 = 99999;
 
   for (auto & surface : bspModel.surfaces) {
