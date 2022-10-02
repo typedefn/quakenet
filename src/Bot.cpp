@@ -692,7 +692,10 @@ void Bot::setInfo() {
   s.writeString(ss.str().c_str());
   s.writeByte(0);
   outputQueue.push(s);
-  
+ 
+  BspParser bspParser;
+  Model bspModel = bspParser.loadModel(mapss.str());
+  targetingSystem->setBspModel(bspModel); 
   initConfiguration();
 }
 

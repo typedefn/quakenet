@@ -24,6 +24,7 @@
 #include <SeekGoal.hpp>
 #include <MessageTypes.hpp>
 #include <Config.hpp>
+#include <BspParser.hpp>
 
 #define MAX_GENOMES 127
 #define MAX_TIMEOUT_IN_SECONDS 5
