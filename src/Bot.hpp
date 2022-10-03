@@ -124,6 +124,7 @@ private:
 
   void initConfiguration();
   void initWaypoints(const std::string & section);
+  void initPosition(const std::string & section);
 
 public:
   void nullCommand(Command *cmd);

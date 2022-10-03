@@ -1034,10 +1034,10 @@ void Bot::initConfiguration() {
   this->mapConfig = std::make_unique<Config>(configSs.str());
   botConfig.numRespawns = this->mapConfig->getInt("main", "num_respawns");
 
-  initWaypoints("respawn0");
-  initWaypoints("respawn1");
-  initWaypoints("position0");
-  initWaypoints("position1");
+  initPosition("respawn0");
+  initPosition("respawn1");
+  initPosition("position0");
+  initPosition("position1");
   initWaypoints("respawn0-position0");
   initWaypoints("respawn0-position1");
   initWaypoints("respawn1-position0");
@@ -1045,25 +1045,49 @@ void Bot::initConfiguration() {
 }
 
 void Bot::initWaypoints(const std::string & section) {
-  std::stringstream ssj;
-  ssj << section;
+  std::stringstream waypointsFilename;
+  waypointsFilename << "../resources/" << mapName << "_waypoints/" << section << ".dat";
 
+  std::fstream fs;
+  std::string filename(waypointsFilename.str());
+
+  fs.open(filename, std::fstream::in);
+  if (fs.fail()) {
+    std::stringstream ss;
+    ss << "Failed to open " << filename;
+    throw std::runtime_error(ss.str());
+  }
+
+  while (!fs.eof()) {
+    std::stringstream ss;
+    char line[256] = { 0 };
+    fs.getline(line, 256);    
+    glm::vec3 waypoint;
+    ss << line;
+    ss >> waypoint.x >> waypoint.y >> waypoint.z;
+    botConfig.waypoints[section].push_back(waypoint);
+  } 
+
+  fs.close();
+}
+
+void Bot::initPosition(const std::string & section) {
   for(int i = 0; ;i++) { 
     std::stringstream ssp;
     ssp << "p" << i;
 
-    if (this->mapConfig->getString(ssj.str(), ssp.str()) == "n/a") {
+    if (this->mapConfig->getString(section, ssp.str()) == "n/a") {
       return;
     }
 
-    glm::vec3 pt = this->mapConfig->getVec3(ssj.str(), ssp.str());
+    glm::vec3 pt = this->mapConfig->getVec3(section, ssp.str());
     float dist = glm::dot(pt, glm::vec3(1, 1, 1));
 
     if (dist < 0.001 && dist > -0.001) {
       return;
     }
 
-    LOG << ssj.str() << " with " << ssp.str();
-    botConfig.waypoints[ssj.str()].push_back(pt);
+    LOG << section << " with " << ssp.str();
+    botConfig.waypoints[section].push_back(pt);
   }
 }
