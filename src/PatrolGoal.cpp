@@ -30,7 +30,7 @@ void PatrolGoal::update() {
     owner->nullButtons();
   }
 
-  const float maxDistance = 200.0;
+  float maxDistance = 200.0;
   dist = 999999;
   float minDist = 99999;
   if (wi == 0) {
@@ -74,6 +74,7 @@ void PatrolGoal::update() {
     waypoints = botConfig.waypoints[sectionName.str()];
   } 
 
+  maxDistance = 100.0;
   glm::vec3 targetPosition = waypoints.at(0);
 
   if (wi < waypoints.size()) {
