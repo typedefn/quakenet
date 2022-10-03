@@ -1054,8 +1054,8 @@ void Bot::initWaypoints(const std::string & section) {
   fs.open(filename, std::fstream::in);
   if (fs.fail()) {
     std::stringstream ss;
-    ss << "Failed to open " << filename;
-    throw std::runtime_error(ss.str());
+    LOG << "Failed to open " << filename;
+    return;
   }
 
   while (!fs.eof()) {
