@@ -85,7 +85,6 @@ void PatrolGoal::update() {
 
   if ( wi < waypoints.size() && dist < maxDistance) {
     wi++;
-    LOG << "wi " << wi << " sz = " << waypoints.size(); 
   }
 
   if (wi == waypoints.size()) {
