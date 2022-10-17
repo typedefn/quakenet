@@ -35,7 +35,7 @@ std::list<int> BotMemory::getListOfRecentlySensedEntities() {
 }
 
 void BotMemory::updateVision() {
-  PlayerInfo *m = owner->getMe();
+  PlayerInfo *me = owner->getMe();
 
   for (size_t num = 0; num < MAX_CLIENTS; num++) {
     PlayerInfo *pi = owner->getPlayerBySlot(num);
@@ -43,11 +43,15 @@ void BotMemory::updateVision() {
       continue;
     }
 
-    if (num == m->slot) {
+    if (num == me->slot) {
       continue;
     }
-
+    
     MemoryRecord m;
+
+    if (memoryMap.find(num) != memoryMap.end()) {
+      m = memoryMap.at(num); 
+    }
 
     if (isWithinFov(num)) {
       m.lastSensedPosition = pi->position;
@@ -63,9 +67,6 @@ void BotMemory::updateVision() {
     }
 
     m.slot = num;
-    if(memoryMap.find(num) != memoryMap.end()) {
-      memoryMap.erase(num);
-    }
 
     memoryMap.insert(std::make_pair(num, m));
   }
@@ -82,13 +83,12 @@ bool BotMemory::isWithinFov(int id) {
 
   glm::vec3 target = owner->getTargetingSystem()->getLastRecordedPosition();
   glm::vec3 facing = glm::normalize(me->direction);
-  double fov = 90;
+  double fov = owner->getBotConfig().fov;
   glm::vec3 toTarget = glm::normalize(target - position);
   float d = dot(facing, toTarget);
   double c = cos(fov / 2.0);
   inFov = (d >= 0.01);
 
-//  LOG << " in fov = " << inFov << " d = " << d << " t.x " << target.x << " t.z " << target.z;
   return inFov;
 }
 

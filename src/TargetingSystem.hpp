@@ -10,6 +10,10 @@
 
 #include "Common.hpp"
 #include "Entity.hpp"
+#include "Box.hpp"
+#include "Ray.hpp"
+#include "BspParser.hpp"
+#include "MathUtil.hpp"
 
 class Bot;
 
@@ -30,9 +34,15 @@ public:
 	void setTarget(int t) {
 	  currentTarget = t;
 	}
+        void setBspModel(Model bspModel) {
+          this->bspModel = bspModel;
+        }
 private:
 	Bot *owner;
 	int currentTarget;
+        Model bspModel;
+
+  bool targetIsVisible(int id);
 };
 
 #endif /* SRC_TARGETINGSYSTEM_HPP_ */

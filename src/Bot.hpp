@@ -24,6 +24,7 @@
 #include <SeekGoal.hpp>
 #include <MessageTypes.hpp>
 #include <Config.hpp>
+#include <BspParser.hpp>
 
 #define MAX_GENOMES 127
 #define MAX_TIMEOUT_IN_SECONDS 5
@@ -41,6 +42,9 @@ struct BotConfig {
   std::map<std::string, std::vector<glm::vec3>> waypoints;
   std::string defend;
   int numRespawns;
+  int targetDistance;
+  int fov;
+  int seekDistance;
 };
 
 class Bot {
@@ -120,6 +124,7 @@ private:
 
   void initConfiguration();
   void initWaypoints(const std::string & section);
+  void initPosition(const std::string & section);
 
 public:
   void nullCommand(Command *cmd);

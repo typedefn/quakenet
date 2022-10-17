@@ -23,7 +23,7 @@ void SeekGoal::update() {
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
 
-  const int maxDistance = 200.0;
+  const int maxDistance = owner->getBotConfig().seekDistance;
   glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
 
   int dist = glm::distance(targetPosition, me->position);

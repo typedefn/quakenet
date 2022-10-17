@@ -12,8 +12,8 @@
 AttackGoal::AttackGoal(Bot *owner) {
   // TODO Auto-generated constructor stub
   this->owner = owner;
-//  goals.push_back(std::make_unique<SeekGoal>(owner));
-//  goals.push_back(std::make_unique<StrafeGoal>(owner));
+  goals.push_back(std::make_unique<SeekGoal>(owner));
+  goals.push_back(std::make_unique<StrafeGoal>(owner));
   totalTime = 0.0;
   sign = 0;
   currentTime = 0;
@@ -28,6 +28,20 @@ void AttackGoal::update() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
+
+  double maxDesire = 1;
+  Goal *goal = nullptr;
+  for (const auto &g : goals) {
+    double currentDesire = g->calculateDesirability();
+    if (currentDesire > maxDesire) {
+      maxDesire = currentDesire;
+      goal = g.get();
+    }
+  }
+
+  if (goal != nullptr) {
+    goal->update();
+  }
 
   if (targetingSystem->isTargetPresent()) {
     int slot = targetingSystem->getTarget();
@@ -57,24 +71,13 @@ void AttackGoal::update() {
 
     owner->rotateY(yawAngle);
     owner->rotateX(-pitchAngle);
-    owner->clickButton(1 | ((rand() % 2) * 2));
+
+    int randomJump = (5 > (rand() % 1000)) ? 2 : 3;
+
+    owner->clickButton(1 | randomJump);
   } else {
     owner->nullButtons();
     owner->moveForward(0);
-  }
-
-  double maxDesire = 1;
-  Goal *goal = nullptr;
-  for (const auto &g : goals) {
-    double currentDesire = g->calculateDesirability();
-    if (currentDesire > maxDesire) {
-      maxDesire = currentDesire;
-      goal = g.get();
-    }
-  }
-
-  if (goal != nullptr) {
-    goal->update();
   }
 }
 
@@ -88,7 +91,7 @@ double AttackGoal::calculateDesirability() {
   glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();
   float dist = glm::distance(targetPosition, me->position);
 
-  if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov() && dist < 500) {
+  if (targetingSystem->isTargetPresent() && targetingSystem->isTargetWithinFov() && dist < owner->getBotConfig().targetDistance) {
     PlayerInfo *target = owner->getPlayerBySlot(targetingSystem->getTarget());
     desire = tweaker * (owner->getHealth() / (dist + 100));
   }
