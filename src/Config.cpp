@@ -34,7 +34,10 @@ void Config::load(const std::string &filename) {
 
     file.close();
   } else {
-    LOG << "Unable to open " << filename;
+    std::stringstream ss;
+    ss << "Unable to open " << filename;
+    LOG << ss.str();
+    throw std::runtime_error(ss.str());
   }
 }
 
