@@ -1045,8 +1045,9 @@ void Bot::initConfiguration() {
 }
 
 void Bot::initWaypoints(const std::string & section) {
+  std::string wpDir = this->mapConfig->getString("main", "waypoints_dir");
   std::stringstream waypointsFilename;
-  waypointsFilename << "../resources/" << mapName << "_waypoints/" << section << ".dat";
+  waypointsFilename << "../resources/" << wpDir << "/" << section << ".dat";
 
   std::fstream fs;
   std::string filename(waypointsFilename.str());
