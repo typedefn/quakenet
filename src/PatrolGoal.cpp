@@ -30,7 +30,7 @@ void PatrolGoal::update() {
     owner->nullButtons();
   }
 
-  float maxDistance = 200.0;
+  float maxDistance = 230.0;
   dist = 999999;
   float minDist = 99999;
   if (wi == 0) {
