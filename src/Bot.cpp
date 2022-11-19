@@ -1032,7 +1032,6 @@ void Bot::initConfiguration() {
   botConfig.defend = this->config->getString("main", "defend");
   
   this->mapConfig = std::make_unique<Config>(configSs.str());
-  botConfig.numRespawns = this->mapConfig->getInt("main", "num_respawns");
 
   const int maxRespawns = 10;
   const int maxPositions = 20;
@@ -1047,6 +1046,8 @@ void Bot::initConfiguration() {
     } 
     initPosition(ssi.str());
   }
+
+  botConfig.numRespawns = i;
 
   // Initialize defend/attack positions.
   int j = 0;
