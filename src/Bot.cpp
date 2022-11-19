@@ -1032,21 +1032,48 @@ void Bot::initConfiguration() {
   botConfig.defend = this->config->getString("main", "defend");
   
   this->mapConfig = std::make_unique<Config>(configSs.str());
-  botConfig.numRespawns = this->mapConfig->getInt("main", "num_respawns");
 
-  initPosition("respawn0");
-  initPosition("respawn1");
-  initPosition("position0");
-  initPosition("position1");
-  initWaypoints("respawn0-position0");
-  initWaypoints("respawn0-position1");
-  initWaypoints("respawn1-position0");
-  initWaypoints("respawn1-position1");
+  const int maxRespawns = 10;
+  const int maxPositions = 20;
+
+  // Initialize respawn positions.
+  int i = 0;
+  for (; i < maxRespawns; i++) {
+    std::stringstream ssi;
+    ssi << "respawn" << i;
+    if(!mapConfig->sectionExist(ssi.str())) {
+      break;
+    } 
+    initPosition(ssi.str());
+  }
+
+  botConfig.numRespawns = i;
+
+  // Initialize defend/attack positions.
+  int j = 0;
+  for (; j < maxPositions; j++) {
+    std::stringstream ssi;
+    ssi << "position" << j;
+    if(!mapConfig->sectionExist(ssi.str())) {
+      break;
+    }
+    initPosition(ssi.str());
+  }
+
+  // Initialize waypoints from respawn to position.
+  for (int ii = 0; ii < i; ii++) {
+    for (int jj = 0; jj < j; jj++) {
+      std::stringstream ssi;
+      ssi << "respawn" << ii << "-" << "position" << jj;
+      initWaypoints(ssi.str());
+    }
+  }
 }
 
 void Bot::initWaypoints(const std::string & section) {
+  std::string wpDir = this->mapConfig->getString("main", "waypoints_dir");
   std::stringstream waypointsFilename;
-  waypointsFilename << "../resources/" << mapName << "_waypoints/" << section << ".dat";
+  waypointsFilename << "../resources/" << wpDir << "/" << section << ".dat";
 
   std::fstream fs;
   std::string filename(waypointsFilename.str());
