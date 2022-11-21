@@ -31,8 +31,8 @@ Bot::Bot(char **argv) {
   botConfig.fov = this->config->getInt(botSection, "fov");
   botConfig.seekDistance = this->config->getInt(botSection, "seek_distance");
 
-  goals.push_back(std::make_unique<PatrolGoal>(this));
-  goals.push_back(std::make_unique<AttackGoal>(this));
+  goals.push_back(std::make_unique<ExploreGoal>(this));
+//  goals.push_back(std::make_unique<AttackGoal>(this));
 //  goals.push_back(std::make_unique<RoamGoal>(this));
 
   for (int i = 0; i < MAX_CLIENTS; i++) {
@@ -694,7 +694,7 @@ void Bot::setInfo() {
   outputQueue.push(s);
  
   BspParser bspParser;
-  Model bspModel = bspParser.loadModel(mapss.str());
+  bspModel = bspParser.loadModel(mapss.str());
   targetingSystem->setBspModel(bspModel); 
   initConfiguration();
 }

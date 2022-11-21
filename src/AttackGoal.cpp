@@ -6,7 +6,6 @@
  */
 
 #include "AttackGoal.hpp"
-
 #include "Bot.hpp"
 
 AttackGoal::AttackGoal(Bot *owner) {

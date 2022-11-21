@@ -20,6 +20,7 @@
 #include <Logger.hpp>
 #include <AttackGoal.hpp>
 #include <PatrolGoal.hpp>
+#include <ExploreGoal.hpp>
 #include <Goal.hpp>
 #include <SeekGoal.hpp>
 #include <MessageTypes.hpp>
@@ -28,6 +29,7 @@
 
 #define MAX_GENOMES 127
 #define MAX_TIMEOUT_IN_SECONDS 5
+class Model;
 
 enum HandShakeState {
   None, New, Info, Prespawn, Spawn, Begin, JoinTeam, SelectClass, DisableChat, Waiting, Connected, Done
@@ -126,6 +128,7 @@ private:
   void initWaypoints(const std::string & section);
   void initPosition(const std::string & section);
 
+  Model bspModel;
 public:
   void nullCommand(Command *cmd);
   void nullButton(Command *cmd);
@@ -171,7 +174,9 @@ public:
     return botConfig;
   }
 
-  
+  Model getBspModel() {
+    return bspModel;
+  }  
 
   double getTime();
   void getChallenge();

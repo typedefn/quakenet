@@ -109,6 +109,10 @@ bool TargetingSystem::targetIsVisible(int id) {
   for (auto & surface : bspModel.surfaces) {
     std::string textureName = surface.texinfo.texture.name;
 
+    if (textureName == "trigger") {
+      continue;
+    }
+
     glm::vec3 surfMin(offset);
     glm::vec3 surfMax(-offset);
 
