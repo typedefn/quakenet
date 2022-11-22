@@ -33,8 +33,8 @@ void ExploreGoal::update() {
   glm::vec3 headings[3];
   glm::vec3 rights[3];
 
-  { // left sensor
-    yaw[0] = owner->getAngleY() - 85;
+  { // right sensor
+    yaw[0] = owner->getAngleY() - 45;
 		glm::quat yawQ = glm::angleAxis(glm::radians((float)yaw[0]), glm::vec3(0, 1, 0));
 		glm::quat orientation = pitchQ * yawQ * rollQ;
 		orientation = glm::normalize(orientation);
@@ -61,8 +61,8 @@ void ExploreGoal::update() {
 	  headingYaw[1] = atan2(-headings[1].z, headings[1].x) * (180.0 / PI);
   }
 
-  { // right sensor
-    yaw[2] = owner->getAngleY() + 85;
+  { // left sensor
+    yaw[2] = owner->getAngleY() + 45;
 		glm::quat yawQ = glm::angleAxis(glm::radians((float)yaw[2]), glm::vec3(0, 1, 0));
 		glm::quat orientation = pitchQ * yawQ * rollQ;
 		orientation = glm::normalize(orientation);
@@ -91,35 +91,17 @@ void ExploreGoal::update() {
   }
 
 	if (visible) {
-		LOG << "NOT HIT WALL";
-		owner->moveForward(250);
-	} else {
-		LOG << "HIT WALL ";
-    glm::vec3 heading = rights[hitSensor]; 
-	  float angleY = 90 + atan2(-heading.z, heading.x) * (180.0 / PI);
+    glm::vec3 heading = headings[1]; 
+	  float angleY = atan2(-heading.z, heading.x) * (180.0 / PI);
 		owner->rotateY((int(angleY)) % 360);
+		owner->moveForward(250);
+		LOG << "NOT HIT WALL angle = " << owner->getAngleY();
+	} else {
+    glm::vec3 heading = rights[hitSensor]; 
+	  float angleY = -atan2(-heading.z, heading.x) * (180.0 / PI);
+		owner->rotateY((int(angleY)) % 360);
+		LOG << "HIT WALL angle = " << angleY;
 	}
-/*
-  if (scanRange >= 150) {
-    movement = true;
-  }
-
-  if (movement) {
-    int dist = glm::distance(gotoPosition, me->position);
-    glm::vec3 dir = gotoPosition - me->position;
-    float yaw = 90 + (atan2(-dir.x, dir.z) * (180.0 / PI));
-
-    if (dist >= 100) {
-      owner->moveForward(300);
-    } else {
-      movement = false;
-      LOG << "reached";
-      owner->moveForward(0);
-    }
-
-    owner->rotateY(yaw);
-  }
-*/
 }
 
 double ExploreGoal::calculateDesirability() {
