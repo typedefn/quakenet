@@ -10,6 +10,8 @@
 
 #include <Common.hpp>
 #include <Utility.hpp>
+#include <Box.hpp>
+#include <MathUtil.hpp>
 
 #define MAX_OSPATH 1024
 // max length of a quake game pathname
@@ -331,6 +333,16 @@ struct Model {
   std::vector<glm::vec3> normals;
 };
 
+struct NavEdge {
+  int i1;
+  int i2;
+};
+
+struct NavNode {
+  int index;
+  glm::vec3 position;
+};
+
 class BspParser {
 public:
   BspParser();
@@ -342,7 +354,8 @@ public:
   Model loadModel(const std::string &mapName);
   std::vector<glm::vec3> getTriangulatedVertices();
   std::vector<glm::vec3> getTriangulatedNormals();
-
+  std::vector<std::vector<int>> generatePov();
+  bool edgeIsValid(glm::vec3 sourcePosition, glm::vec3 destinationPosition);
 private:
   Model model;
   byte *modelBytes;
@@ -361,6 +374,8 @@ private:
   void loadFaces(Lump *l);
   void loadSubmodels(Lump *l);
   void generateSurface(Surface *fa);
+
+  std::vector<NavNode> navNodes;
 };
 
 #endif /* COMMON_SRC_BSPPARSER_HPP_ */

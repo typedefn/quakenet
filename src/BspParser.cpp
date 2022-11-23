@@ -145,6 +145,102 @@ std::vector<glm::vec3> BspParser::getTriangulatedNormals() {
   return normals;
 }
 
+std::vector<std::vector<int>> BspParser::generatePov() {
+  navNodes.clear();
+  int nodeIndex = 0; 
+  for (size_t i = 0; i < model.surfaces.size(); ++i) {
+    auto surface = model.surfaces.at(i);
+    std::string textureName = surface.texinfo.texture.name;
+  
+    if (textureName == "trigger") {
+      continue;
+    }    
+
+    Polygon * p = &surface.polys;
+
+    for (size_t j = 0; j < p->verts.size(); ++j) {
+      glm::vec3 p0 = p->verts.at(j).position;
+      NavNode node { nodeIndex, p0 };
+      navNodes.push_back(node);
+      nodeIndex++;
+    }
+  }
+
+  std::vector<int> row(navNodes.size(), 0);
+  std::vector<std::vector<int>> edges(navNodes.size(), row);
+
+  for (int i = 0; i < navNodes.size(); i++) {
+    NavNode node = navNodes.at(i);
+
+    for (int j = 0; j < navNodes.size(); j++) {
+      NavNode node2 = navNodes.at(j);
+
+      if (i != j) {
+        if (edgeIsValid(node.position, node2.position)) {
+          edges[i][j] = j;
+        }
+      }
+    }
+  }
+
+  return edges;
+}
+
+bool BspParser::edgeIsValid(glm::vec3 sourcePosition, glm::vec3 destinationPosition) {
+  float c = 25;
+
+  glm::vec3 tmin = glm::vec3(-c, -c, -c);
+  glm::vec3 tmax = glm::vec3(c, c, c);
+
+  Box destinationBox(tmin + destinationPosition, tmax + destinationPosition);
+
+  float distanceToDestination = glm::distance(sourcePosition, destinationPosition);
+
+  glm::vec3 direction = destinationPosition - sourcePosition;
+
+  Ray ray(sourcePosition, glm::normalize(direction));
+
+  float t2 = 0.0;
+  bool destinationIntersected = destinationBox.intersectV2(ray, &t2);
+  float offset = 999999;
+  float smallestT1 = offset;
+
+  for (auto & surface : model.surfaces) {
+    std::string textureName = surface.texinfo.texture.name;
+ 
+    if (textureName == "trigger") {
+      continue;
+    }
+
+    glm::vec3 surfMin(offset);
+    glm::vec3 surfMax(-offset);
+
+    Polygon * p = &surface.polys;
+
+    for (size_t j = 0; j < p->verts.size(); ++j) {
+      glm::vec3 p0 = p->verts.at(j).position;
+      MathUtil::instance()->findMin(p0, surfMin);
+      MathUtil::instance()->findMax(p0, surfMax);
+    }
+
+    Box box(surfMin, surfMax);
+    box.setCenter((box.getMin() + box.getMax()) / 2.0f);
+
+    glm::vec3 po = box.getCenter();
+
+    float dist = glm::distance(sourcePosition, po);
+    float t = 0.0;
+
+    bool rayIntersected = box.intersectV2(ray, &t);
+
+    if (destinationIntersected && rayIntersected && smallestT1 > t) {
+      smallestT1 = t;
+    }
+  }
+
+  return t2 < smallestT1;
+}
+
 void BspParser::loadBrushModel() {
   int i, j;
   int bsp2;
