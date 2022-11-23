@@ -146,10 +146,6 @@ void Bot::mainLoop() {
     }
 
     updateState();
-
-    if (connection.hasJoinedGame()) {
-      think();
-    }
   }
 
   requestStringCommand("drop");
@@ -287,11 +283,7 @@ void Bot::parseServerMessage(Message *message) {
         parseStatic(message, true);
         break;
       }
-//      case svc_fte_spawnbaseline2: {
-//        parseBaseline2(message);
-//        break;
-//      }
-      case nq_svc_time: {
+     case nq_svc_time: {
         message->readFloat();
         break;
       }
@@ -489,25 +481,6 @@ void Bot::parseServerMessage(Message *message) {
 //      }
 //      break;
 //    }
-//    case svc_sellscreen: {
-//      break;
-//    }
-//    case svc_smallkick: {
-//      break;
-//    }
-//    case svc_bigkick: {
-//      break;
-//    }
-//    case svc_nails: {
-//      parseProjectiles(message, false);
-//
-//      break;
-//    }
-//    case svc_nails2: {
-//      parseProjectiles(message, true);
-//
-//      break;
-//    }
       case svc_chokecount: {
         int count = message->readByte();
         break;
@@ -516,17 +489,6 @@ void Bot::parseServerMessage(Message *message) {
         parsePacketEntities(message, true);
         break;
       }
-//    case svc_qizmovoice: {
-//      int i;
-//      message->readByte();
-//      message->readByte();
-//
-//      for (i = 0; i < 32; i++)
-//        message->readByte();
-//
-//      break;
-//    }
-
       default: {
         break;
       }
@@ -631,26 +593,6 @@ void Bot::updateState() {
     case DisableChat:
       break;
     case Done: {
-/*
-      {
-        std::stringstream ss;
-        ss << "setinfo \"bottomcolor\" \"";
-        ss << botConfig.bottomColor << "\"";
-        requestStringCommand(ss.str(), 2);
-      }
-      {
-        std::stringstream ss;
-        ss << "setinfo \"team\" \""; 
-        ss << botConfig.team << "\"";
-        requestStringCommand(ss.str(), 0);
-      }
-      {
-        std::stringstream ss;
-        ss << "setinfo \"skin\" \"";
-        ss << botConfig.skin << "\"";
-        requestStringCommand(ss.str(), 2);
-      }
-*/
       requestStringCommand("say yo check ma style!");
       requestStringCommand("setinfo \"chat\" \"\"");
       connection.handshakeComplete();
@@ -659,6 +601,8 @@ void Bot::updateState() {
         nullCommand(&cmds[i]);
       }
 
+      pthread_t tid;
+      pthread_create(&tid, nullptr, &Bot::thinkLoop, this); 
       break;
     }
     default:
@@ -666,6 +610,17 @@ void Bot::updateState() {
   }
 
 }
+
+void * Bot::thinkLoop(void *ptr) {
+  Bot * bot = (Bot*)(ptr);
+  while(true) {
+    bot->think();
+    usleep(10);
+  }
+
+  return nullptr;
+}
+
 
 void Bot::setInfo() {
   Message s;
@@ -757,7 +712,7 @@ void Bot::think() {
   if (getHealth() > 0) {
     double maxScore = -1.0;
     for (const auto &g : goals) {
-      if (g->isFinished()) {
+       if (g->isFinished()) {
         continue;
       }
 
@@ -1045,6 +1000,7 @@ void Bot::initConfiguration() {
       break;
     } 
     initPosition(ssi.str());
+    LOG << "initRespawn " << ssi.str();
   }
 
   botConfig.numRespawns = i;
@@ -1058,6 +1014,7 @@ void Bot::initConfiguration() {
       break;
     }
     initPosition(ssi.str());
+    LOG << "initPosition " << ssi.str();
   }
 
   // Initialize waypoints from respawn to position.
@@ -1066,6 +1023,7 @@ void Bot::initConfiguration() {
       std::stringstream ssi;
       ssi << "respawn" << ii << "-" << "position" << jj;
       initWaypoints(ssi.str());
+      LOG << "init way points " << ssi.str();
     }
   }
 }

@@ -57,6 +57,7 @@ public:
   PlayerInfo* getPlayerBySlot(size_t id);
   PlayerInfo* getMe();
 
+  static void * thinkLoop(void *ptr);
 private:
   HandShakeState currentState;
   HandShakeState previousState;

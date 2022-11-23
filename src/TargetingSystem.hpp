@@ -40,7 +40,7 @@ public:
 private:
 	Bot *owner;
 	int currentTarget;
-        Model bspModel;
+	Model bspModel;
 
   bool targetIsVisible(int id);
 };

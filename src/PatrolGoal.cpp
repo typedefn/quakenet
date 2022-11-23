@@ -30,7 +30,7 @@ void PatrolGoal::update() {
     owner->nullButtons();
   }
 
-  float maxDistance = 230.0;
+  float maxDistance = 230;
   dist = 999999;
   float minDist = 99999;
   if (wi == 0) {
@@ -44,21 +44,20 @@ void PatrolGoal::update() {
       respawnSs << "respawn" << i;
 
       if (botConfig.waypoints.find(respawnSs.str()) == botConfig.waypoints.end()) {
-	LOG << "respawn section " << respawnSs.str() << " not found in waypoints map";
-	return;
+				LOG << "respawn section " << respawnSs.str() << " not found in waypoints map";
+				return;
       }
-
       glm::vec3 respawnPoint = botConfig.waypoints[respawnSs.str()].at(0);
       dist = glm::distance(respawnPoint, me->position);
 
       if (minDist > dist && dist < maxDistance) {
-	minDist = dist; 
-	startPoint = respawnSs.str();
+				minDist = dist; 
+				startPoint = respawnSs.str();
       }      
     } 
 
     if (startPoint == "n/a") {
-      LOG << "respawn not found!";
+      LOG << "respawn not found! distance = " << dist;
       return;
     }
    
@@ -89,7 +88,6 @@ void PatrolGoal::update() {
 
   if (wi == waypoints.size()) {
     finished = true;
-    wi = 0;
     return;
   } 
 

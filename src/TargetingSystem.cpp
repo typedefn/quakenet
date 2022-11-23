@@ -21,8 +21,7 @@ TargetingSystem::~TargetingSystem() {
 void TargetingSystem::update() {
 	double closestDistanceSoFar = 999999999.0;
 
-	std::list<int> entities =
-			owner->getBotMemory()->getListOfRecentlySensedEntities();
+	std::list<int> entities =	owner->getBotMemory()->getListOfRecentlySensedEntities();
   PlayerInfo *m = owner->getMe();
 	for (const auto id : entities) {
 		PlayerInfo *p = owner->getPlayerBySlot(id);
@@ -39,15 +38,13 @@ void TargetingSystem::update() {
 
 		if (dist < closestDistanceSoFar && dist <= owner->getBotConfig().targetDistance) {
 			closestDistanceSoFar = dist;
-                        currentTarget = id;
+			currentTarget = id;
 		}
 	}
 
-                  if (!targetIsVisible(currentTarget)) {
-	            clearTarget();	
-                  }
-
-
+	if (!targetIsVisible(currentTarget)) {
+    clearTarget();
+  }
 }
 
 bool TargetingSystem::isTargetPresent() const {
@@ -108,6 +105,11 @@ bool TargetingSystem::targetIsVisible(int id) {
 
   for (auto & surface : bspModel.surfaces) {
     std::string textureName = surface.texinfo.texture.name;
+  
+    // ignore triggers
+    if (textureName == "trigger") {
+      continue;
+    }
 
     glm::vec3 surfMin(offset);
     glm::vec3 surfMax(-offset);
