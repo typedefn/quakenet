@@ -32,6 +32,8 @@ void SeekGoal::update() {
 
   if (dist > maxDistance) {
     owner->moveForward(glm::min(248, dist+50));
+  } else {
+    owner->moveForward(0);
   }
 
   owner->rotateY(yaw);

@@ -1026,6 +1026,18 @@ void Bot::initConfiguration() {
       LOG << "init way points " << ssi.str();
     }
   }
+
+  for (int k = 0; k < 10; ++k) {
+    std::stringstream ss;
+    ss << "no_firezone" << k;
+    if (!mapConfig->sectionExist(ss.str())) {
+      break;
+    }
+   
+    std::pair<float, glm::vec3> p = { mapConfig->getInt(ss.str(), "radius"), mapConfig->getVec3(ss.str(), "origin") };
+    botConfig.noFirezones.push_back(p);
+    
+  }
 }
 
 void Bot::initWaypoints(const std::string & section) {

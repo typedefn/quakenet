@@ -40,6 +40,7 @@ struct BotConfig {
   std::string name; 
   std::string bottomColor;
   std::map<std::string, std::vector<glm::vec3>> waypoints;
+  std::vector<std::pair<float, glm::vec3>> noFirezones;
   std::string defend;
   int numRespawns;
   int targetDistance;

@@ -50,9 +50,22 @@ void AttackGoal::update() {
 
     PlayerInfo *target = owner->getPlayerBySlot(slot);
 
+    BotConfig botConfig = owner->getBotConfig();
+
     if (me->team == target->team) {
       targetingSystem->clearTarget();
       return;
+    } 
+
+    // If player is in no fire zone stop attacking
+    for (int i = 0; i < botConfig.noFirezones.size(); ++i) {
+      float radius = botConfig.noFirezones.at(i).first;
+      glm::vec3 origin = botConfig.noFirezones.at(i).second;
+
+      if (glm::distance(origin, lastPosition) <= radius) {
+        owner->nullButtons();
+        return;
+      }
     } 
 
     glm::vec3 toEnemy = lastPosition - me->position;
