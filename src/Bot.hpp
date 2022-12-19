@@ -12,7 +12,6 @@
 #include <Connection.hpp>
 #include <Utility.hpp>
 #include <Genome.hpp>
-#include <NeuralNet.hpp>
 #include <Entity.hpp>
 #include <TsQueue.hpp>
 #include <BotMemory.hpp>

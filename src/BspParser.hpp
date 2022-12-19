@@ -10,6 +10,7 @@
 
 #include <Common.hpp>
 #include <Utility.hpp>
+#include <Box.hpp>
 
 #define MAX_OSPATH 1024
 // max length of a quake game pathname
@@ -342,7 +343,8 @@ public:
   Model loadModel(const std::string &mapName);
   std::vector<glm::vec3> getTriangulatedVertices();
   std::vector<glm::vec3> getTriangulatedNormals();
-
+  void generateNavMesh();
+  bool boxTest(Box & targetBox);
 private:
   Model model;
   byte *modelBytes;

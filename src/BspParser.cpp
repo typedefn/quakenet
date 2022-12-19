@@ -6,6 +6,9 @@
  */
 
 #include "BspParser.hpp"
+#include "Box.hpp"
+#include <stack>
+#include "MathUtil.hpp"
 
 BspParser::BspParser() {
   modelBytes = nullptr;
@@ -21,6 +24,127 @@ BspParser::~BspParser() {
   fclose(pak.handle);
 }
 
+void BspParser::generateNavMesh() {
+  std::vector<glm::vec3> navmesh;
+  std::string pos;
+  for(auto entity : model.bspEntities) {
+    if (entity.keyValues.find("classname") != entity.keyValues.end()) {
+      if (entity.keyValues["classname"] == "info_player_deathmatch") {
+        LOG << "world respawn found '" << entity.keyValues["origin"] << "'";
+        pos = entity.keyValues["origin"];
+        break;
+      }
+    }
+  }
+
+  std::stringstream ss(pos);
+
+
+  float d = 25;
+  float x = 0;
+  float y = 0;
+  float z = 0;
+
+  ss >> x;
+  ss >> z;
+  ss >> y;
+
+  std::stack<glm::vec3> stack;   
+  glm::vec3 center = glm::vec3(x, y, z);
+
+  stack.push(center);
+
+  std::vector<glm::vec3> directions = {
+    glm::vec3(d, d, -d),
+    glm::vec3(-d, d, -d),
+    glm::vec3(-d, d, d),
+    glm::vec3(d, d, d),
+
+    glm::vec3(d, -d, -d),
+    glm::vec3(-d, -d, -d),
+    glm::vec3(-d, -d, d),
+    glm::vec3(d, -d, d),
+
+	};
+
+  std::vector<glm::vec3> closed_list;
+
+  while(!stack.empty()) {
+    glm::vec3 center = stack.top();
+    stack.pop();
+
+		Box box(glm::vec3(-d, -d, -d) + center, glm::vec3(d, d, d) + center);
+	  LOG << center.x << " " << center.y << " " << center.z;
+
+		closed_list.push_back(center);
+    if (!boxTest(box)) {
+      for(auto dir : directions) {
+
+        center += dir;
+
+    		Box box(glm::vec3(-d, -d, -d) + center, glm::vec3(d, d, d) + center);
+
+        if (boxTest(box)) {
+          closed_list.push_back(center);
+          center -= dir;
+        }
+
+        float dist = 9999;
+        for(const auto & c :closed_list) {
+          dist = glm::distance(c, center);
+          if (dist < d) {
+            break;
+          }
+        }
+
+        if (dist < d) {
+		     continue; 
+        }
+ 
+        stack.push(center);
+      }
+    } 
+    
+  }
+}
+
+bool BspParser::boxTest(Box & targetBox) {
+  float t2 = 0.0;
+  float offset = 99999;
+  float smallestT1 = 99999;
+  bool contains = false;
+
+  for (auto & surface : model.surfaces) {
+    std::string textureName = surface.texinfo.texture.name;
+    
+    // ignore triggers
+    if (textureName == "trigger") {
+      continue;
+    }
+
+    glm::vec3 surfMin(offset);
+    glm::vec3 surfMax(-offset);
+
+    Polygon *p = &surface.polys;
+
+    for (size_t j = 0; j < p->verts.size(); ++j) {
+      glm::vec3 p0 = p->verts.at(j).position;
+      MathUtil::instance()->findMin(p0, surfMin);
+      MathUtil::instance()->findMax(p0, surfMax);
+    }
+    glm::vec3 cntr = (surfMin + surfMax) / 2.0f;
+    Box box(surfMin, surfMax);
+    box.setCenter(cntr);
+    contains = box.contains(targetBox);
+
+    if(contains) {
+      break;
+    }
+
+    } // end of surfaces
+
+  return contains;
+}
 Model BspParser::loadModel(const std::string &mapName) {
   PackFile packFile;
 
@@ -106,6 +230,8 @@ Model BspParser::loadModel(const std::string &mapName) {
   model.uvs = localUVs;
 
   LOG << "Done Loading surfaces vertex size = " << localVertex.size() << " index size = " << localIndex.size() << " local uvs size = " << localUVs.size();
+
+  generateNavMesh();
   return model;
 }
 
@@ -353,6 +479,7 @@ void BspParser::loadEntities(Lump *l) {
   BspEntity be;
 
   for (auto s : strings) {
+    //LOG << s;
     if (s == "{") {
       be = BspEntity();
     } else if (s == "}") {
@@ -365,6 +492,7 @@ void BspParser::loadEntities(Lump *l) {
 
       std::string key = s.substr(startKeyIndex, endKeyIndex - startKeyIndex);
       std::string value = s.substr(startValueIndex, endValueIndex - startValueIndex);
+
       be.keyValues[key] = value;
     }
   }

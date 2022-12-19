@@ -23,13 +23,25 @@ Box::~Box() {
   // TODO Auto-generated destructor stub
 }
 bool Box::contains(const Box & b) const {
-  glm::vec3 min = b.getMin();
-  glm::vec3 max = b.getMax();
+  glm::vec3 bmin = b.getMin();
+  glm::vec3 bmax = b.getMax();
+
+  glm::vec3 min = bounds[0];
+  glm::vec3 max = bounds[1];
+ 
 /*  LOG << min.x << " " << bounds[0].x << " " << min.z << " " << bounds[0].z 
       << min.y << " " << bounds[0].y << " " << max.x << " " << bounds[1].x
       << max.y << " " << bounds[1].y << " " << max.z << " " << bounds[1].z;
 */
-  return (min.x >= bounds[0].x && min.y >= bounds[0].y && min.z >= bounds[0].z && max.x <= bounds[1].x && max.y <= bounds[1].y && max.z <= bounds[1].z);
+return (
+    min.x <= bmax.x &&
+    max.x >= bmin.x &&
+    min.y <= bmax.y &&
+    max.y >= bmin.y &&
+    min.z <= bmax.z &&
+    max.z >= bmin.z
+  );
+  //return (min.x >= bounds[0].x && min.y >= bounds[0].y && min.z >= bounds[0].z && max.x <= bounds[1].x && max.y <= bounds[1].y && max.z <= bounds[1].z);
 }
 
 bool Box::intersect(const Ray &r) const {
