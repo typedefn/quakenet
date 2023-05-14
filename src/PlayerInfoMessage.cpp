@@ -27,10 +27,9 @@ void PlayerInfoMessage::read(Message *message) {
   }
 
   PlayerInfo *pi = bot->getPlayerBySlot(num);
-
   if (pi->active && pi->slot != bot->getMe()->slot) {
     bot->getTargetingSystem()->setTarget(num);
-//    LOG << "SLOT " << num << " is set as target";
+  //  LOG << "SLOT " << num << " is set as target";
   }
 
   int flags = message->readShort();
@@ -45,9 +44,9 @@ void PlayerInfoMessage::read(Message *message) {
   glm::vec3 position = glm::vec3(pi->coords[0], pi->coords[2], pi->coords[1]);
   pi->position = position;
 
-//  if (num == bot->getTargetId()) {
-  //LOG << "[" << num << "]" << " x = " << position.x << " y = " << position.y << " z = " << position.z;
-//  }
+  if (pi->active && pi->slot != bot->getMe()->slot) {
+   // LOG << "[" << num << "]" << " x = " << position.x << " y = " << position.y << " z = " << position.z;
+  }
 
   pi->time = bot->getTime();
 

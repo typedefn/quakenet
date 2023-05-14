@@ -28,6 +28,7 @@ struct PlayerInfo {
   glm::vec3 direction;
   float angles[3];
   std::string team;
+  glm::vec3 previousPosition;
 };
 
 #endif /* ENTITY_HPP_ */

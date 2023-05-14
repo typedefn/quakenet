@@ -74,7 +74,6 @@ void BspParser::generateNavMesh() {
     stack.pop();
 
 		Box box(glm::vec3(-d, -d, -d) + center, glm::vec3(d, d, d) + center);
-	  LOG << center.x << " " << center.y << " " << center.z;
 
 		closed_list.push_back(center);
     if (!boxTest(box)) {
@@ -231,7 +230,6 @@ Model BspParser::loadModel(const std::string &mapName) {
 
   LOG << "Done Loading surfaces vertex size = " << localVertex.size() << " index size = " << localIndex.size() << " local uvs size = " << localUVs.size();
 
-  generateNavMesh();
   return model;
 }
 

@@ -171,6 +171,8 @@
 #define PACKET_HEADER 8
 #define MAX_CLIENTS 32
 
+#define	SND_VOLUME		(1 << 15)
+#define SND_ATTENUATION (1 << 14)   // a byte
 #define PF_TRANS_Z      (1<<17)
 
 // temp entity events

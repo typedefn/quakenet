@@ -23,14 +23,13 @@ void PatrolGoal::update() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
-
   BotConfig botConfig = owner->getBotConfig();
 
   if (!targetingSystem->isTargetPresent()) {
     owner->nullButtons();
   }
 
-  float maxDistance = 230;
+  float maxDistance = 120;
   dist = 999999;
   float minDist = 99999;
   if (wi == 0) {
@@ -73,7 +72,7 @@ void PatrolGoal::update() {
     waypoints = botConfig.waypoints[sectionName.str()];
   } 
 
-  maxDistance = 100.0;
+  maxDistance = 40.0;
   glm::vec3 targetPosition = waypoints.at(0);
 
   if (wi < waypoints.size()) {
@@ -81,7 +80,7 @@ void PatrolGoal::update() {
   }
 
   dist = glm::distance(targetPosition, me->position);
-
+  //LOG << "t.x " << targetPosition.x << " y = " << targetPosition.y << " z = " << targetPosition.z << " dist = " << dist;
   if ( wi < waypoints.size() && dist < maxDistance) {
     wi++;
   }
@@ -116,6 +115,8 @@ double PatrolGoal::calculateDesirability() {
 }
 
 void PatrolGoal::reset() {
+  dist = 999999;
   finished = false;
   wi = 0;
+  owner->getTargetingSystem()->clearTarget();
 }

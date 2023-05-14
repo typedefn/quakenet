@@ -41,18 +41,19 @@ void UpdateUserInfoMessage::read(Message *message) {
     pi->name = name;
   }
 
-  LOG << slot << " name = " << name << "pi->team = " << pi->team;
+  LOG << slot << " name = " << name << " pi->team = " << pi->team;
 
   if (pi != nullptr && userId != 0 && !name.empty()) {
     pi->active = true;
     pi->slot = slot;
-//    LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " " << value << " " << name;
+    LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " team " << pi->team << " name " << name << " value = " << value;
   }
 
   std::string spectator = Utility::findValue("*spectator", value);
 
   if (spectator == "1") {
     pi->active = false;
+    LOG << "is spectator = " << value;
   }
 
 //  LOG << "updateUserInfo: " << " slot = " << slot << " user id " << userId << " " << value << " " << name;

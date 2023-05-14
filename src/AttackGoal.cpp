@@ -98,7 +98,7 @@ double AttackGoal::calculateDesirability() {
   TargetingSystem *targetingSystem = owner->getTargetingSystem();
   BotMemory *memory = owner->getBotMemory();
   PlayerInfo *me = owner->getMe();
-  double desire = 0.0;
+  double desire = 0.001;
   double tweaker = 40.0;
 
   glm::vec3 targetPosition = targetingSystem->getLastRecordedPosition();

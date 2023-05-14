@@ -53,6 +53,7 @@ Bot::Bot(char **argv) {
     players[i].angles[2] = 0;
     players[i].velocity = glm::vec3(0, 0, 0);
     players[i].position = glm::vec3(0, 0, 0);
+    players[i].previousPosition = glm::vec3(0, 0, 0);
     players[i].speed = 0;
     players[i].direction = glm::vec3(0, 0, 0);
   }
@@ -275,7 +276,6 @@ void Bot::parseServerMessage(Message *message) {
       // Keep continue here until all the switch messages types have been converted.
       continue;
     }
-//    LOG << cmd;
     // TODO old switch statement, needs to be wrapped into classes.
     switch (cmd) {
       case svc_fte_spawnstatic2: {
@@ -303,7 +303,6 @@ void Bot::parseServerMessage(Message *message) {
         for (int i = 0; i < 3; i++) {
           angles[i] = message->readFloat();
         }
-
         break;
       }
       case svc_muzzleflash: {
@@ -334,7 +333,6 @@ void Bot::parseServerMessage(Message *message) {
 
         PlayerInfo *pi = getPlayerBySlot(slot);
         pi->frags = message->readShort();
-
         break;
       }
       case svc_updateping: {
@@ -377,62 +375,87 @@ void Bot::parseServerMessage(Message *message) {
       case svc_updatestatlong: {
         byte i = message->readByte();
         long j = message->readLong();
-//        LOG << "svc updatestat long = " << (int)i << " value = " << (int)j;
         if (i >= 0 && i < MAX_CL_STATS) {
           setStat(i, j);
         }
         break;
       }
-//      case svc_setangle: {
-//        float x = message->readChar() * (360.0 / 256);
-//        float y = message->readChar() * (360.0 / 256);
-//        float z = message->readChar() * (360.0 / 256);
-//        break;
-//      }
-//      case svc_damage: {
-//        int armor_ = message->readByte();
-//        int blood_ = message->readByte();
-//        float coords[3];
-//        float distanceToMe;
-//        float distanceToTarget;
-//
-//        for (int i = 0; i < 3; i++) {
-//          coords[i] = message->readCoord();
-//        }
-//
-//        glm::vec3 from(coords[0], coords[2], coords[1]);
-//        break;
-//      }
-//      case svc_sound: {
-//        float pos[3] = { };
-//        byte channel = message->readByte();
-//        byte soundNumber = message->readByte();
-//
-//        for (int i = 0; i < 3; i++) {
-//          pos[i] = message->readCoord();
-//        }
-//
-//        break;
-//      }
-//      case svc_stopsound: {
-//        message->readShort();
-//        break;
-//      }
-//
-//      case svc_spawnbaseline: {
-//        message->readShort();
-//        parseBaseline(message);
-//        break;
-//      }
+/*
+      case svc_setangle: {
+        float x = message->readChar() * (360.0 / 256);
+        float y = message->readChar() * (360.0 / 256);
+        float z = message->readChar() * (360.0 / 256);
+        LOG << "set angle = " << x << " y " << y << " z " << z;
+        break;
+      }
+      case svc_damage: {
+        int armor_ = message->readByte();
+        int blood_ = message->readByte();
+        float coords[3];
+        float distanceToMe;
+        float distanceToTarget;
+
+        for (int i = 0; i < 3; i++) {
+          coords[i] = message->readCoord();
+        }
+
+        glm::vec3 from(coords[0], coords[2], coords[1]);
+        LOG << "dmg " << from.x << " " << from.y << " " << from.z;
+        break;
+      }
+*/
+      case svc_sound: {
+        float pos[3] = { };
+        int channel = message->readShort();
+        int volume = (channel & SND_VOLUME) ? message->readByte() : 0;
+        float attenuation = (channel & SND_ATTENUATION) ? message->readByte() / 64.0 : 0;
+
+        int soundNumber = message->readByte();
+
+        for (int i = 0; i < 3; i++) {
+          pos[i] = message->readCoord();
+        }
+
+        int ent = (channel >> 3) & 1023;
+        channel &= 7;
+  
+//        LOG << "sound channel " << channel << " # " << volume << " x " << pos[0] << " y = " << pos[2] << " z = " << pos[1] << " ent = " << ent << " sound number " << soundNumber;
+        int entityNum = ent - 1;
+        if (entityNum >= 0 && entityNum < MAX_CLIENTS) {
+          PlayerInfo *pi = getPlayerBySlot(entityNum);
+          if (pi != nullptr && pi->slot != getMe()->slot) {
+            getTargetingSystem()->setTarget(entityNum);
+            pi->previousPosition = pi->position;
+            pi->position.x = pos[0];
+            pi->position.y = pos[2];
+            pi->position.z = pos[1];
+            pi->velocity = (pi->position - pi->previousPosition)/(float)getTime();
+            pi->speed = glm::distance(pi->previousPosition, pi->position)/(float)getTime();
+          }
+        } 
+        break;
+      }
+      case svc_stopsound: {
+        message->readShort();
+        break;
+      }
+/*
+      case svc_spawnbaseline: {
+        message->readShort();
+        parseBaseline(message);
+        break;
+      }
+*/
       case svc_spawnstatic: {
         parseStatic(message, false);
         break;
       }
-//    case svc_temp_entity: {
-//      float pos[3] = { };
-//      bool parsed = false;
-//      byte type = message->readByte();
-//
+/*
+    case svc_temp_entity: {
+      float pos[3] = { };
+      bool parsed = false;
+      byte type = message->readByte();
+
 //      switch (type) {
 //      case TE_LIGHTNING1:
 //        parseBeam(message, 1);
@@ -474,13 +497,14 @@ void Bot::parseServerMessage(Message *message) {
 //      }
 //      }
 //
-//      if (!parsed) {
-//        pos[0] = message->readCoord();
-//        pos[1] = message->readCoord();
-//        pos[2] = message->readCoord();
-//      }
-//      break;
-//    }
+      if (!parsed) {
+        pos[0] = message->readCoord();
+        pos[1] = message->readCoord();
+        pos[2] = message->readCoord();
+      }
+      break;
+    }
+*/
       case svc_chokecount: {
         int count = message->readByte();
         break;
@@ -738,7 +762,7 @@ void Bot::think() {
     }
 
     targetingSystem->clearTarget();
-
+        
     timers["button"] += (currentTime - previousTime);
     if (timers["button"] > 1) {
       clickButton(0);
@@ -824,7 +848,6 @@ void Bot::parsePacketEntities(Message *msg, bool delta) {
   if (delta) {
     from = msg->readByte();
   }
-
   validSequence = connection.getIncomingSequence();
 
   int word = 0;
@@ -860,7 +883,7 @@ void Bot::parseDelta(Message *msg, byte bits) {
   morebits = 0;
 
   if (bits & U_MODEL) {
-    msg->readByte();
+   byte a =  msg->readByte();
   }
 
   if (bits & U_FRAME) {
