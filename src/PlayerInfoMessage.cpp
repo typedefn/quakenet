@@ -42,12 +42,13 @@ void PlayerInfoMessage::read(Message *message) {
   pi->frame = message->readByte();
 
   glm::vec3 position = glm::vec3(pi->coords[0], pi->coords[2], pi->coords[1]);
+  pi->previousPosition = pi->position;
   pi->position = position;
 
   if (pi->active && pi->slot != bot->getMe()->slot) {
    // LOG << "[" << num << "]" << " x = " << position.x << " y = " << position.y << " z = " << position.z;
   }
-
+  pi->previousTime = pi->time;
   pi->time = bot->getTime();
 
   if (flags & PF_MSEC) {
@@ -121,6 +122,8 @@ void PlayerInfoMessage::read(Message *message) {
     int s = message->readByte();
   }
 
+  pi->previousVelocity = pi->velocity;
+
   for (int i = 0; i < 3; i++) {
     if (flags & (PF_VELOCITY1 << i)) {
       short v = message->readShort();
@@ -158,7 +161,7 @@ void PlayerInfoMessage::read(Message *message) {
   }
 
   for (int i = 0; i < 3; i++) {
-    pi->velocity[i] *= frameTime;
+//    pi->velocity[i] *= frameTime;
   }
 
   pi->speed = sqrt(pi->velocity[0] * pi->velocity[0] + pi->velocity[1] * pi->velocity[1] + pi->velocity[2] * pi->velocity[2]);

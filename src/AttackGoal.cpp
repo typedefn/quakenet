@@ -46,10 +46,7 @@ void AttackGoal::update() {
   if (targetingSystem->isTargetPresent()) {
     int slot = targetingSystem->getTarget();
     glm::vec3 lastPosition = targetingSystem->getLastRecordedPosition();
-    float targetSpeed = owner->getPlayerBySlot(slot)->speed;
-
     PlayerInfo *target = owner->getPlayerBySlot(slot);
-
     BotConfig botConfig = owner->getBotConfig();
 
     if (me->team == target->team) {
@@ -66,19 +63,16 @@ void AttackGoal::update() {
         owner->nullButtons();
         return;
       }
-    } 
-
-    glm::vec3 toEnemy = lastPosition - me->position;
-    float lookAhead = glm::length(toEnemy) / (targetSpeed + 6.0);
-
-    glm::vec3 velocity = owner->getPlayerBySlot(slot)->velocity;
-    glm::vec3 targetPosition = lastPosition + velocity * lookAhead;
-
+    }    
+    //float projVel = glm::dot(target->velocity, target->accel);
+    float dt = (float)owner->getTime() - (float)target->time;
+    glm::vec3 futureVel = target->velocity;
+    glm::vec3 newPosition = lastPosition + futureVel * 0.5f;
+    glm::vec3 targetPosition = newPosition;
+    glm::vec3 toEnemy = targetPosition - me->position;
     glm::vec3 directionToTarget = glm::normalize(targetPosition - me->position);
-
-    float opposite = toEnemy.y - 40;
-    float hypotonus = glm::distance(lastPosition, me->position);
-
+    float opposite = toEnemy.y - ((rand() + 10) % 40);
+    float hypotonus = glm::distance(targetPosition, me->position);
     float yawAngle = 90 + atan2(-directionToTarget.x, directionToTarget.z) * (180.0 / PI);
     float pitchAngle = asinf(opposite / hypotonus) * (180.0 / PI);
 

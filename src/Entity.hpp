@@ -23,12 +23,15 @@ struct PlayerInfo {
   bool active;
   glm::vec3 velocity;
   glm::vec3 position;
+  glm::vec3 accel;
   double time;
+  double previousTime;
   float speed;
   glm::vec3 direction;
   float angles[3];
   std::string team;
   glm::vec3 previousPosition;
+  glm::vec3 previousVelocity;
 };
 
 #endif /* ENTITY_HPP_ */

@@ -419,18 +419,20 @@ void Bot::parseServerMessage(Message *message) {
         int ent = (channel >> 3) & 1023;
         channel &= 7;
   
-//        LOG << "sound channel " << channel << " # " << volume << " x " << pos[0] << " y = " << pos[2] << " z = " << pos[1] << " ent = " << ent << " sound number " << soundNumber;
         int entityNum = ent - 1;
         if (entityNum >= 0 && entityNum < MAX_CLIENTS) {
           PlayerInfo *pi = getPlayerBySlot(entityNum);
-          if (pi != nullptr && pi->slot != getMe()->slot) {
+          if (pi != nullptr && pi->slot != getMe()->slot && pi->active) {
+           // LOG << "sound channel " << channel << " # " << volume << " x " << pos[0] << " y = " << pos[2] << " z = " << pos[1] << " ent = " << ent << " sound number " << soundNumber;
             getTargetingSystem()->setTarget(entityNum);
+            pi->previousTime = pi->time;
             pi->previousPosition = pi->position;
+            pi->previousVelocity = pi->velocity;
+            pi->time = (float)getTime();
             pi->position.x = pos[0];
             pi->position.y = pos[2];
             pi->position.z = pos[1];
-            pi->velocity = (pi->position - pi->previousPosition)/(float)getTime();
-            pi->speed = glm::distance(pi->previousPosition, pi->position)/(float)getTime();
+            pi->velocity = (pi->position - pi->previousPosition)/float(pi->time - pi->previousTime);
           }
         } 
         break;
@@ -762,12 +764,11 @@ void Bot::think() {
     }
 
     targetingSystem->clearTarget();
-        
     timers["button"] += (currentTime - previousTime);
-    if (timers["button"] > 1) {
+    if (timers["button"] > 5) {
       clickButton(0);
       timers["button"] = 0;
-    } else if (timers["button"] > 0.2) {
+    } else if (timers["button"] > 2) {
       clickButton(1);
     }
   }
